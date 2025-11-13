@@ -1,0 +1,14 @@
+.panel {
+  background: #ffffff;
+  border: 1px solid #e2e9f3;
+  border-radius: 16px;
+  padding: 24px;
+  min-height: 140px;
+  box-shadow: 0 10px 24px rgba(25, 60, 100, 0.05);
+}
+
+.light {
+  background: #f4f8ff;
+}
+
+

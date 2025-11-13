@@ -1,0 +1,154 @@
+.screen {
+  display: grid;
+  gap: 28px;
+}
+
+.section {
+  padding: 30px 36px;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 18px;
+  color: #576575;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.title img {
+  width: 16px;
+  height: 16px;
+}
+
+.list {
+  display: grid;
+  gap: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 24px rgba(25, 60, 100, 0.08);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 18px;
+  padding: 18px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #ecf1f4;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #89abe3;
+}
+
+.content {
+  display: grid;
+  gap: 6px;
+}
+
+.meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #98a3b1;
+  font-size: 14px;
+}
+
+.author {
+  color: #1f2c35;
+  font-weight: 600;
+}
+
+.divider {
+  width: 1px;
+  height: 14px;
+  background: #ccd7e0;
+  display: inline-block;
+}
+
+.titleVideo {
+  color: #1f2c35;
+  font-weight: 500;
+}
+
+.text {
+  color: #1f2c35;
+  font-weight: 500;
+}
+
+.bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+.topList {
+  display: grid;
+  gap: 16px;
+}
+
+.topComment {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 18px;
+  padding: 16px 20px;
+  background: #fffdfd;
+  border-radius: 16px;
+  box-shadow: 0 8px 18px rgba(25, 60, 100, 0.08);
+  border: 1px solid rgba(197, 210, 224, 0.65);
+}
+
+.topThumb {
+  width: 86px;
+  height: 64px;
+  border-radius: 10px;
+  background: #d8dee6;
+}
+
+.topInfo {
+  display: grid;
+  gap: 10px;
+}
+
+.topTitle {
+  font-weight: 600;
+  color: #1f2c35;
+}
+
+.topMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #000000;
+  font-weight: 600;
+}
+
+.topMeta img {
+  width: 18px;
+  height: 18px;
+}
+
+.chartPlaceholder {
+  height: 280px;
+  border-radius: 14px;
+  background: #d9dce2;
+}
+
+.tabs {
+  margin-bottom: 18px;
+}
+
+.tabsWide {
+  margin-bottom: 18px;
+}
+
+

@@ -1,0 +1,201 @@
+.appShell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+  background: #eef3f8;
+  color: #222;
+  width: 100%;
+}
+
+.sidebar {
+  background: #202731;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 0 22px 24px 22px;
+  gap: 20px;
+}
+
+.brandContainer {
+  height: 76px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  line-height: 1.2;
+}
+
+.brand {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  justify-content: center;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.brandYT {
+  color: #FF0000;
+}
+
+.brandInsight {
+  color: #ffffff;
+}
+
+.brandLine {
+  display: flex;
+  width: 100%;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 2px;
+  overflow: hidden;
+  gap: 0;
+}
+
+.brandLineWhite {
+  width: 50%;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.brandLineTeal {
+  width: 50%;
+  background: #26E2B3;
+  flex-shrink: 0;
+}
+
+.nav {
+  display: grid;
+  gap: 12px;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e5ecf1;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.linkActive {
+  background: linear-gradient(90deg, #1fbba2, #27d8ba);
+  color: #0b2d2a;
+  box-shadow: 0 8px 18px rgba(39, 216, 186, 0.25);
+}
+
+.logout {
+  margin-top: auto;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #1fbba2, #27d8ba);
+  color: #0b2d2a;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(31, 187, 162, 0.3);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  flex: 1;
+}
+
+.page {
+  padding: 32px 36px;
+  width: 100%;
+}
+
+.topbar {
+  height: 76px;
+  background: #f4f8ff;
+  border-bottom: 1px solid #d6dee9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: relative;
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 32px;
+  right: 32px;
+  bottom: -1px;
+  height: 1px;
+  background: #b7c3d3;
+  opacity: 0.35;
+}
+
+.topbarHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.2;
+}
+
+.topbarChevron {
+  width: 24px;
+  height: 24px;
+}
+
+.welcome {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.date {
+  font-size: 14px;
+  color: #98a2b1;
+}
+
+.topbarActions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.actionButton {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e3e9ee;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+}
+
+.actionIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #d4d6dc;
+}
+
