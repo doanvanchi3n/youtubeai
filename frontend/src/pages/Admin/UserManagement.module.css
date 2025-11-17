@@ -1,0 +1,201 @@
+.screen {
+  display: grid;
+  gap: 28px;
+}
+
+.searchPanel {
+  padding: 24px 32px;
+}
+
+.searchInput {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 10px 20px 10px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  width: 100%;
+  max-width: 600px;
+}
+
+.searchIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+
+.searchField {
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  outline: none;
+  color: #1f2c35;
+  flex: 1;
+}
+
+.searchField::placeholder {
+  color: #9aa1aa;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  font-size: 18px;
+  color: #576575;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.sectionTitle img {
+  width: 16px;
+  height: 16px;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.table thead {
+  background: #f4f8ff;
+}
+
+.table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: #576575;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e2e9f3;
+}
+
+.table td {
+  padding: 16px;
+  border-bottom: 1px solid #e2e9f3;
+  font-size: 14px;
+  color: #1f2c35;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #26E2B3 0%, #1db59c 100%);
+}
+
+.roleBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: rgba(38, 226, 179, 0.15);
+  color: #1db59c;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(38, 226, 179, 0.15);
+  color: #1db59c;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actionBtn {
+  padding: 6px 12px;
+  border: 1px solid #e2e9f3;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #576575;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionBtn:hover {
+  background: #f4f8ff;
+  border-color: #26E2B3;
+  color: #26E2B3;
+}
+
+.actionBtnDanger {
+  padding: 6px 12px;
+  border: 1px solid #ff6b6b;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #ff6b6b;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionBtnDanger:hover {
+  background: #ff6b6b;
+  color: #ffffff;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e9f3;
+}
+
+.pageBtn {
+  padding: 8px 16px;
+  border: 1px solid #e2e9f3;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #576575;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pageBtn:hover {
+  background: #f4f8ff;
+  border-color: #26E2B3;
+  color: #26E2B3;
+}
+
+.pageInfo {
+  color: #6f7c8b;
+  font-size: 14px;
+}
+

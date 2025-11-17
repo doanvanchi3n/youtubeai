@@ -1,0 +1,211 @@
+.screen {
+  display: grid;
+  gap: 28px;
+}
+
+.metricsRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(256px, 1fr));
+  gap: 24px;
+  justify-items: center;
+}
+
+.statCard {
+  background: #fffdfd;
+  border-radius: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  padding: 28px 22px;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  width: 256px;
+  height: 177px;
+}
+
+.statIcon {
+  width: 28px;
+  height: 28px;
+}
+
+.statValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2c35;
+}
+
+.statLabel {
+  color: #7a858f;
+  font-size: 14px;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  font-size: 18px;
+  color: #576575;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.sectionTitle img {
+  width: 16px;
+  height: 16px;
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+.chartPlaceholder {
+  height: 180px;
+  border-radius: 14px;
+  background: #d9dce2;
+}
+
+.serverStatus {
+  display: grid;
+  gap: 16px;
+}
+
+.serverItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  background: #ffffff;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.serverInfo {
+  display: grid;
+  gap: 4px;
+}
+
+.serverName {
+  font-weight: 600;
+  color: #1f2c35;
+  font-size: 15px;
+}
+
+.serverUrl {
+  color: #6f7c8b;
+  font-size: 13px;
+}
+
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.statusOnline {
+  background: rgba(38, 226, 179, 0.15);
+  color: #1db59c;
+}
+
+.statusOffline {
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.errorLogs {
+  display: grid;
+  gap: 12px;
+}
+
+.errorItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.errorInfo {
+  display: grid;
+  gap: 4px;
+}
+
+.errorType {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff6b6b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.errorMessage {
+  font-size: 14px;
+  color: #1f2c35;
+}
+
+.errorTime {
+  font-size: 12px;
+  color: #6f7c8b;
+}
+
+.activityList {
+  display: grid;
+  gap: 12px;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: #ffffff;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.activityIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #26E2B3 0%, #1db59c 100%);
+  flex-shrink: 0;
+}
+
+.activityContent {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+}
+
+.activityText {
+  font-size: 14px;
+  color: #1f2c35;
+}
+
+.activityText strong {
+  color: #26E2B3;
+  font-weight: 600;
+}
+
+.activityTime {
+  font-size: 12px;
+  color: #6f7c8b;
+}
+

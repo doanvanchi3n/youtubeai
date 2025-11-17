@@ -1,0 +1,265 @@
+.screen {
+  display: grid;
+  gap: 28px;
+}
+
+.tabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 2px solid #e2e9f3;
+}
+
+.tab {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #6f7c8b;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -2px;
+}
+
+.tab:hover {
+  color: #26E2B3;
+}
+
+.tabActive {
+  color: #26E2B3;
+  border-bottom-color: #26E2B3;
+  font-weight: 600;
+}
+
+.sectionTitle {
+  font-weight: 600;
+  font-size: 18px;
+  color: #576575;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.sectionTitle img {
+  width: 16px;
+  height: 16px;
+}
+
+.settingsList {
+  display: grid;
+  gap: 16px;
+}
+
+.settingItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.settingInfo {
+  display: grid;
+  gap: 6px;
+}
+
+.settingLabel {
+  font-weight: 600;
+  color: #1f2c35;
+  font-size: 15px;
+}
+
+.settingValue {
+  font-size: 13px;
+  color: #6f7c8b;
+  font-family: monospace;
+}
+
+.settingActions {
+  display: flex;
+  gap: 10px;
+}
+
+.actionBtn {
+  padding: 8px 16px;
+  border: 1px solid #e2e9f3;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #576575;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.actionBtn:hover {
+  background: #f4f8ff;
+  border-color: #26E2B3;
+  color: #26E2B3;
+}
+
+.formGroup {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.label {
+  display: grid;
+  gap: 8px;
+  font-weight: 500;
+  color: #1f2c35;
+  font-size: 14px;
+}
+
+.input {
+  padding: 12px 14px;
+  border: 2px solid #e5e9ed;
+  border-radius: 12px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #ffffff;
+  color: #1c2933;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  outline: none;
+}
+
+.input:focus {
+  border-color: #26E2B3;
+  box-shadow: 0 4px 16px rgba(37, 182, 164, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.saveBtn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #26E2B3 0%, #1db59c 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(37, 182, 164, 0.3);
+}
+
+.saveBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 182, 164, 0.4);
+}
+
+.twoColumn {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+.toggleList {
+  display: grid;
+  gap: 16px;
+}
+
+.toggleItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  border-radius: 12px;
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggleSlider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 26px;
+}
+
+.toggleSlider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle input:checked + .toggleSlider {
+  background-color: #26E2B3;
+}
+
+.toggle input:checked + .toggleSlider:before {
+  transform: translateX(24px);
+}
+
+.backupActions {
+  display: grid;
+  gap: 16px;
+}
+
+.backupBtn {
+  padding: 12px 20px;
+  border: 2px solid #e5e9ed;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #576575;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backupBtn:hover {
+  border-color: #26E2B3;
+  color: #26E2B3;
+  background: #f4f8ff;
+}
+
+.backupList {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.backupItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.backupSize {
+  color: #6f7c8b;
+}
+

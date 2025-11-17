@@ -1,5 +1,6 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 import { useMemo } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import homeIcon from '../../assets/icons/home.svg'
 import analyticsIcon from '../../assets/icons/analys.svg'
 import sentimentIcon from '../../assets/icons/smile.svg'
@@ -38,7 +39,7 @@ function SidebarLink({ to, label, icon }) {
 }
 
 export default function AppLayout() {
-  const navigate = useNavigate()
+  const { user, logout } = useAuth()
   const today = useMemo(() => {
     const formatted = new Date().toLocaleDateString('en-US', {
       month: 'long',
@@ -69,7 +70,7 @@ export default function AppLayout() {
         <button
           type="button"
           className={styles.logout}
-          onClick={() => navigate('/login')}
+          onClick={logout}
         >
           <img src={logoutIcon} alt="" className={styles.icon} />
           <span>Logout</span>
@@ -78,7 +79,7 @@ export default function AppLayout() {
       <main className={styles.content}>
         <header className={styles.topbar}>
           <div className={styles.topbarHeading}>
-            <span className={styles.welcome}>Welcome Chien</span>
+            <span className={styles.welcome}>Welcome {user?.username || 'User'}</span>
             <img src={chevronIcon} alt="" className={styles.topbarChevron} />
             <span className={styles.date}>{today}</span>
           </div>
