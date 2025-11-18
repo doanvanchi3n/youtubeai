@@ -29,12 +29,13 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
     
-    public String generateToken(String email, String role) {
+    public String generateToken(Long userId, String email, String role) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpiration);
         
         return Jwts.builder()
             .subject(email)
+            .claim("userId", userId)
             .claim("role", role)
             .issuedAt(now)
             .expiration(expiryDate)
@@ -58,6 +59,26 @@ public class JwtTokenProvider {
             .parseSignedClaims(token)
             .getPayload();
         return claims.get("role", String.class);
+    }
+    
+    public Long getUserIdFromToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+            Object userIdObj = claims.get("userId");
+            if (userIdObj == null) {
+                return null; // Token cũ không có userId claim
+            }
+            if (userIdObj instanceof Number) {
+                return ((Number) userIdObj).longValue();
+            }
+            return null;
+        } catch (RuntimeException e) {
+            return null; // Trả về null nếu không parse được
+        }
     }
     
     public boolean validateToken(String token) {

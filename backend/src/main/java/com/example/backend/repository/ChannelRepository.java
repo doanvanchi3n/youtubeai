@@ -14,5 +14,7 @@ public interface ChannelRepository extends JpaRepository<Channel, Long> {
     
     @Query("SELECT COUNT(c) FROM Channel c WHERE c.user.id = :userId")
     long countByUserId(Long userId);
+    
+    Optional<Channel> findFirstByUserIdOrderByUpdatedAtDesc(Long userId);
 }
 

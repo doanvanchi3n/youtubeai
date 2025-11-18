@@ -41,13 +41,17 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthResponse.UserInfo> getCurrentUser(
             @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
+        }
         String token = authHeader.replace("Bearer ", "");
         if (!jwtTokenProvider.validateToken(token)) {
             return ResponseEntity.status(401).build();
         }
         
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
         String email = jwtTokenProvider.getEmailFromToken(token);
-        AuthResponse.UserInfo user = authService.getCurrentUser(email);
+        AuthResponse.UserInfo user = authService.getCurrentUser(userId, email);
         return ResponseEntity.ok(user);
     }
     

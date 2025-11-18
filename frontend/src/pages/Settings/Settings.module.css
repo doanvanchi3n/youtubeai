@@ -4,6 +4,26 @@
   max-width: 800px;
 }
 
+.loading {
+  padding: 48px;
+  text-align: center;
+  color: #1f2c35;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(31, 44, 53, 0.08);
+}
+
+.retryBtn {
+  margin-top: 16px;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  background: #26E2B3;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .panel {
   padding: 28px 32px;
 }
@@ -35,6 +55,9 @@
   border-radius: 50%;
   background: #d4d6dc;
   border: 3px solid #e5e7eb;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .editAvatarBtn {
@@ -53,6 +76,10 @@
   background: #f9fafb;
   border-color: #26E2B3;
   color: #26E2B3;
+}
+
+.hiddenInput {
+  display: none;
 }
 
 .accountInfo {
@@ -108,10 +135,66 @@
   background: #1fbba2;
 }
 
+.saveBtn:disabled {
+  background: #8de9d2;
+  cursor: not-allowed;
+}
+
+.passwordSection {
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.passwordGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.subTitle {
+  margin: 0;
+  font-size: 16px;
+  color: #1f2c35;
+  font-weight: 600;
+}
+
+.accountStats {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.statItem {
+  padding: 16px;
+  border: 1px solid #edf2f7;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.statValue {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2c35;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: #6b7280;
+}
+
 .card {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.cardHint {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .label {
@@ -169,5 +252,11 @@
 
 .toggle input:focus + .slider {
   box-shadow: 0 0 1px #26E2B3;
+}
+
+.toggleHint {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #6b7280;
 }
 

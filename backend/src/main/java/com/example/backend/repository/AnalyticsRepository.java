@@ -12,5 +12,6 @@ import java.util.Optional;
 public interface AnalyticsRepository extends JpaRepository<Analytics, Long> {
     Optional<Analytics> findByChannelIdAndDate(Long channelId, LocalDate date);
     List<Analytics> findByChannelIdOrderByDateAsc(Long channelId);
+    List<Analytics> findByChannelIdAndDateBetweenOrderByDateAsc(Long channelId, LocalDate startDate, LocalDate endDate);
 }
 

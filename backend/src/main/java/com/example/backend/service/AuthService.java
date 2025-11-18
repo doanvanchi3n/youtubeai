@@ -59,7 +59,7 @@ public class AuthService {
         preferencesRepository.save(preferences);
         
         // Generate JWT token
-        String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole());
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
         
         return buildAuthResponse(token, user);
     }
@@ -79,8 +79,16 @@ public class AuthService {
             throw new RuntimeException("Email hoặc mật khẩu không đúng");
         }
         
+        // Đảm bảo role không null
+        String role = user.getRole();
+        if (role == null || role.isBlank()) {
+            role = "USER";
+            user.setRole(role);
+            userRepository.save(user);
+        }
+        
         // Generate JWT token
-        String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole());
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail(), role);
         
         return buildAuthResponse(token, user);
     }
@@ -152,7 +160,7 @@ public class AuthService {
             }
             
             // Generate JWT token
-            String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole());
+            String token = jwtTokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
             
             return buildAuthResponse(token, user);
         } catch (Exception e) {
@@ -160,10 +168,21 @@ public class AuthService {
         }
     }
     
-    public AuthResponse.UserInfo getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+    public AuthResponse.UserInfo getCurrentUser(Long userId, String email) {
+        User user = findUserByIdentifier(userId, email);
+        return buildUserInfo(user);
+    }
+    
+    private AuthResponse buildAuthResponse(String token, User user) {
+        AuthResponse.UserInfo userInfo = buildUserInfo(user);
         
+        return AuthResponse.builder()
+            .token(token)
+            .user(userInfo)
+            .build();
+    }
+    
+    private AuthResponse.UserInfo buildUserInfo(User user) {
         return AuthResponse.UserInfo.builder()
             .id(user.getId())
             .username(user.getUsername())
@@ -173,18 +192,13 @@ public class AuthService {
             .build();
     }
     
-    private AuthResponse buildAuthResponse(String token, User user) {
-        AuthResponse.UserInfo userInfo = AuthResponse.UserInfo.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .avatarUrl(user.getAvatarUrl())
-            .role(user.getRole())
-            .build();
+    private User findUserByIdentifier(Long userId, String email) {
+        if (userId != null) {
+            return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        }
         
-        return AuthResponse.builder()
-            .token(token)
-            .user(userInfo)
-            .build();
+        return userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

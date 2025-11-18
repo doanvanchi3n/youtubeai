@@ -79,14 +79,14 @@ export default function SupportTools() {
             </div>
             <div className={styles.logItem}>
               <span className={styles.logLevel}>WARN</span>
-              <span className={styles.logMessage}>AI model response time > 5s</span>
+              <span className={styles.logMessage}>AI model response time &gt; 5s</span>
               <span className={styles.logTime}>14:25:45</span>
             </div>
             {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className={styles.logItem}>
                 <span className={styles.logLevel}>INFO</span>
                 <span className={styles.logMessage}>Processing request #{5000 + i}</span>
-                <span className={styles.logTime}>14:2{i}:00</span>
+                <span className={styles.logTime}>14:{String(20 + i).padStart(2, '0')}:00</span>
               </div>
             ))}
           </div>

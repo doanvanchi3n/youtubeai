@@ -206,5 +206,10 @@
   height: 46px;
   border-radius: 50%;
   background: #d4d6dc;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 2px solid #e3e9ee;
+  flex-shrink: 0;
 }
 

@@ -32,6 +32,11 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/dev/**").permitAll() // Development endpoints
+                .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/api/user/**").permitAll() // Controllers handle JWT manually
+                .requestMatchers("/api/dashboard/**").permitAll() // Token validated inside controller
+                .requestMatchers("/api/youtube/**").permitAll()
                 .anyRequest().authenticated()
             );
         

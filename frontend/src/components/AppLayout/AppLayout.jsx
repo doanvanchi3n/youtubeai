@@ -87,7 +87,19 @@ export default function AppLayout() {
             <button type="button" className={styles.actionButton}>
               <img src={notificationIcon} alt="" className={styles.actionIcon} />
             </button>
-            <div className={styles.avatar} />
+            <div
+              className={styles.avatar}
+              style={
+                user?.avatarUrl
+                  ? {
+                      backgroundImage: `url(${user.avatarUrl.startsWith('http') ? user.avatarUrl : `http://localhost:8080${user.avatarUrl}`})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat'
+                    }
+                  : undefined
+              }
+            />
           </div>
         </header>
         <div className={styles.page}>

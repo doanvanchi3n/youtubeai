@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '../services/authService'
 
@@ -8,6 +8,20 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const persistUser = useCallback((userData) => {
+    setUser(userData)
+    if (userData) {
+      localStorage.setItem('user', JSON.stringify(userData))
+    } else {
+      localStorage.removeItem('user')
+    }
+  }, [])
+  
+  const refreshUser = useCallback(async () => {
+    const userData = await authService.getCurrentUser()
+    persistUser(userData)
+    return userData
+  }, [persistUser])
   
   useEffect(() => {
     // Check if user is logged in
@@ -30,9 +44,7 @@ export function AuthProvider({ children }) {
   
   const verifyToken = async () => {
     try {
-      const userData = await authService.getCurrentUser()
-      setUser(userData)
-      localStorage.setItem('user', JSON.stringify(userData))
+      await refreshUser()
     } catch (error) {
       // Token invalid, logout
       logout()
@@ -43,38 +55,34 @@ export function AuthProvider({ children }) {
   
   const login = async (email, password) => {
     const response = await authService.login(email, password)
-    setUser(response.user)
+    persistUser(response.user)
     localStorage.setItem('token', response.token)
-    localStorage.setItem('user', JSON.stringify(response.user))
     return response
   }
   
   const register = async (userData) => {
     const response = await authService.register(userData)
-    setUser(response.user)
+    persistUser(response.user)
     localStorage.setItem('token', response.token)
-    localStorage.setItem('user', JSON.stringify(response.user))
     return response
   }
   
   const googleLogin = async (token) => {
     const response = await authService.googleAuth(token)
-    setUser(response.user)
+    persistUser(response.user)
     localStorage.setItem('token', response.token)
-    localStorage.setItem('user', JSON.stringify(response.user))
     return response
   }
   
   const logout = () => {
-    setUser(null)
+    persistUser(null)
     localStorage.removeItem('token')
-    localStorage.removeItem('user')
     localStorage.removeItem('rememberMe')
     navigate('/login')
   }
   
   return (
-    <AuthContext.Provider value={{ user, login, register, googleLogin, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, googleLogin, logout, loading, refreshUser, updateUser: persistUser }}>
       {children}
     </AuthContext.Provider>
   )

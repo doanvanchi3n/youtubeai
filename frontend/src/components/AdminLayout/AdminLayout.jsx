@@ -38,7 +38,7 @@ function SidebarLink({ to, label, icon }) {
 }
 
 export default function AdminLayout() {
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
   const today = useMemo(() => {
     const formatted = new Date().toLocaleDateString('en-US', {
       month: 'long',
@@ -87,7 +87,19 @@ export default function AdminLayout() {
             <button type="button" className={styles.actionButton}>
               <img src={notificationIcon} alt="" className={styles.actionIcon} />
             </button>
-            <div className={styles.avatar} />
+            <div
+              className={styles.avatar}
+              style={
+                user?.avatarUrl
+                  ? {
+                      backgroundImage: `url(${user.avatarUrl.startsWith('http') ? user.avatarUrl : `http://localhost:8080${user.avatarUrl}`})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      backgroundRepeat: 'no-repeat'
+                    }
+                  : undefined
+              }
+            />
           </div>
         </header>
         <div className={styles.page}>
