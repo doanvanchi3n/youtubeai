@@ -17,18 +17,18 @@ import com.example.backend.repository.CommentRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VideoRepository;
 import com.example.backend.util.YouTubeUrlParser;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +41,7 @@ public class YouTubeAnalysisService {
     private final AnalyticsRepository analyticsRepository;
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
+    private final VideoStatsHistoryService videoStatsHistoryService;
     
     @Value("${youtube.sync.max-videos:0}")
     private int maxVideosToSync;
@@ -135,13 +136,19 @@ public class YouTubeAnalysisService {
             });
         }
         updateAnalytics(channel, videos, channelInfo);
+        videoStatsHistoryService.recordSnapshots(persistedVideos);
     }
     
     private List<Video> storeVideos(Channel channel, List<YouTubeVideoInfo> videos) {
-        List<Video> persisted = new java.util.ArrayList<>();
+        // Xóa toàn bộ video (và comment liên quan) trước khi lưu dữ liệu mới
+        videoStatsHistoryService.deleteByChannelId(channel.getId());
+        videoRepository.deleteByChannelId(channel.getId());
+        
+        videoRepository.deleteByChannelId(channel.getId());
+        
+        List<Video> batch = new java.util.ArrayList<>();
         videos.forEach(videoInfo -> {
-            Video video = videoRepository.findByVideoId(videoInfo.getVideoId())
-                .orElseGet(Video::new);
+            Video video = new Video();
             video.setChannel(channel);
             video.setVideoId(videoInfo.getVideoId());
             video.setTitle(videoInfo.getTitle());
@@ -152,16 +159,18 @@ public class YouTubeAnalysisService {
             video.setLikeCount(videoInfo.getLikeCount());
             video.setCommentCount(videoInfo.getCommentCount());
             video.setPublishedAt(videoInfo.getPublishedAt());
-            persisted.add(videoRepository.save(video));
+            batch.add(video);
         });
-        return persisted;
+        return videoRepository.saveAll(batch);
     }
     
     private void storeComments(Video video, List<YouTubeCommentInfo> comments) {
+        if (comments == null || comments.isEmpty()) {
+            return;
+        }
+        
+        List<Comment> batch = new java.util.ArrayList<>(comments.size());
         comments.forEach(commentInfo -> {
-            if (commentRepository.findByCommentId(commentInfo.getCommentId()).isPresent()) {
-                return;
-            }
             Comment comment = new Comment();
             comment.setVideo(video);
             comment.setCommentId(commentInfo.getCommentId());
@@ -171,13 +180,14 @@ public class YouTubeAnalysisService {
             comment.setContent(commentInfo.getTextDisplay());
             comment.setLikeCount(commentInfo.getLikeCount());
             comment.setPublishedAt(commentInfo.getPublishedAt());
-            commentRepository.save(comment);
+            batch.add(comment);
         });
+        commentRepository.saveAll(batch);
     }
     
     private void updateAnalytics(Channel channel, List<YouTubeVideoInfo> videos, YouTubeChannelInfo info) {
         Long infoViews = info.getViewCount();
-        long totalViews = infoViews != null ? infoViews.longValue() : videos.stream()
+        long totalViews = infoViews != null ? infoViews : videos.stream()
             .map(YouTubeVideoInfo::getViewCount)
             .filter(Objects::nonNull)
             .mapToLong(Long::longValue)
@@ -187,11 +197,7 @@ public class YouTubeAnalysisService {
             .filter(Objects::nonNull)
             .mapToLong(Long::longValue)
             .sum();
-        int totalComments = videos.stream()
-            .map(YouTubeVideoInfo::getCommentCount)
-            .filter(Objects::nonNull)
-            .mapToInt(Integer::intValue)
-            .sum();
+        long totalComments = commentRepository.countByChannelId(channel.getId());
         
         Analytics analytics = analyticsRepository
             .findByChannelIdAndDate(channel.getId(), LocalDate.now())
@@ -200,7 +206,7 @@ public class YouTubeAnalysisService {
         analytics.setDate(LocalDate.now());
         analytics.setViewCount(totalViews);
         analytics.setLikeCount(totalLikes);
-        analytics.setCommentCount(totalComments);
+        analytics.setCommentCount(Math.toIntExact(totalComments));
         analytics.setSubscriberCount(info.getSubscriberCount());
         analytics.setVideoCount(info.getVideoCount());
         analyticsRepository.save(analytics);
@@ -208,6 +214,7 @@ public class YouTubeAnalysisService {
         channel.setViewCount(info.getViewCount());
         channel.setSubscriberCount(info.getSubscriberCount());
         channel.setVideoCount(info.getVideoCount());
+        channel.setLastSyncedAt(LocalDateTime.now());
         channelRepository.save(channel);
     }
     
@@ -225,6 +232,8 @@ public class YouTubeAnalysisService {
                 .viewCount(video.getViewCount())
                 .likeCount(video.getLikeCount())
                 .commentCount(video.getCommentCount())
+                .tags(Collections.emptyList())
+                .categoryId(null)
                 .build());
         });
         
@@ -238,8 +247,8 @@ public class YouTubeAnalysisService {
     private long engagementScore(YouTubeVideoInfo video) {
         Long likeValue = video.getLikeCount();
         Integer commentValue = video.getCommentCount();
-        long likes = likeValue != null ? likeValue.longValue() : 0L;
-        long comments = commentValue != null ? commentValue.longValue() : 0L;
+        long likes = likeValue != null ? likeValue : 0L;
+        long comments = commentValue != null ? commentValue : 0L;
         return likes + comments;
     }
 }

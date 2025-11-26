@@ -1,3 +1,11 @@
 # This directory will contain saved ML models
 # Files: sentiment_model.pkl, emotion_model.pkl, topic_model.pkl
 
+# Ignore PhoBERT models (rất nặng, không push lên GitHub)
+ai_module/app/data/models/phobert_emotion/
+ai_module/app/data/models/phobert_sentiment/
+*.safetensors
+# Env files (không commit secret)
+.env
+*.env
+ai_module/.env

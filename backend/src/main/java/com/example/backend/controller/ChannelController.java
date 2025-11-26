@@ -1,10 +1,10 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.AnalyzeUrlRequest;
-import com.example.backend.dto.response.AnalyzeUrlResponse;
+import com.example.backend.dto.response.AnalyzeJobResponse;
 import com.example.backend.exception.UnauthorizedException;
 import com.example.backend.security.JwtTokenProvider;
-import com.example.backend.service.YouTubeAnalysisService;
+import com.example.backend.service.AnalyzeJobService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,17 +16,28 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "http://localhost:5173")
 public class ChannelController {
     
-    private final YouTubeAnalysisService youTubeAnalysisService;
+    private final AnalyzeJobService analyzeJobService;
     private final JwtTokenProvider jwtTokenProvider;
     
     @PostMapping("/analyze")
-    public ResponseEntity<AnalyzeUrlResponse> analyzeUrl(
+    public ResponseEntity<AnalyzeJobResponse> analyzeUrl(
         @RequestHeader("Authorization") String authHeader,
         @Valid @RequestBody AnalyzeUrlRequest request
     ) {
         TokenPrincipal principal = resolvePrincipal(authHeader);
-        AnalyzeUrlResponse response = youTubeAnalysisService.analyzeUrl(principal.userId(), request.getUrl());
-        return ResponseEntity.ok(response);
+        var job = analyzeJobService.createJob(principal.userId(), request.getUrl());
+        return ResponseEntity.accepted().body(AnalyzeJobResponse.from(job));
+    }
+    
+    @GetMapping("/analyze/{jobId}")
+    public ResponseEntity<AnalyzeJobResponse> getAnalyzeJob(
+        @RequestHeader("Authorization") String authHeader,
+        @PathVariable Long jobId
+    ) {
+        TokenPrincipal principal = resolvePrincipal(authHeader);
+        return analyzeJobService.getJob(principal.userId(), jobId)
+            .map(job -> ResponseEntity.ok(AnalyzeJobResponse.from(job)))
+            .orElseGet(() -> ResponseEntity.notFound().build());
     }
     
     private TokenPrincipal resolvePrincipal(String authHeader) {

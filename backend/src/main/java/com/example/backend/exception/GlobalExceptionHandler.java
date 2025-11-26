@@ -1,6 +1,8 @@
 package com.example.backend.exception;
 
 import com.example.backend.dto.response.ErrorResponse;
+import lombok.RequiredArgsConstructor;
+import com.example.backend.service.SystemLogService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -15,7 +17,10 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 import java.util.stream.Collectors;
 
 @ControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+    
+    private final SystemLogService systemLogService;
     
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex) {
@@ -32,24 +37,28 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), "UNAUTHORIZED");
     }
     
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), "FORBIDDEN");
+    }
+    
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException ex) {
         // Kiểm tra nếu là lỗi authentication/authorization
         String message = ex.getMessage();
         if (message != null && (message.contains("Email") || message.contains("mật khẩu") 
                 || message.contains("khóa") || message.contains("Token"))) {
+            systemLogService.record("WARN", "backend", message, null);
             return buildResponse(HttpStatus.BAD_REQUEST, message, "AUTH_ERROR");
         }
-        // Log lỗi không mong đợi
-        ex.printStackTrace();
+        systemLogService.record("ERROR", "backend", message, ex.toString());
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, 
             message != null ? message : "Đã xảy ra lỗi hệ thống", "INTERNAL_ERROR");
     }
     
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
-        // Log lỗi không mong đợi
-        ex.printStackTrace();
+        systemLogService.record("ERROR", "backend", ex.getMessage(), ex.toString());
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Đã xảy ra lỗi hệ thống", "INTERNAL_ERROR");
     }
     

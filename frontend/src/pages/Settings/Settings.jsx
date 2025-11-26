@@ -293,19 +293,19 @@ export default function Settings() {
                     value={passwordForm.currentPassword}
                     onChange={handlePasswordChange}
                     placeholder="Nhập mật khẩu hiện tại"
-                  />
-                </div>
-                <div className={styles.infoRow}>
+              />
+            </div>
+            <div className={styles.infoRow}>
                   <label className={styles.infoLabel}>Mật khẩu mới</label>
-                  <input
-                    type="password"
+              <input
+                type="password"
                     name="newPassword"
-                    className={styles.infoInput}
+                className={styles.infoInput}
                     value={passwordForm.newPassword}
                     onChange={handlePasswordChange}
-                    placeholder="Nhập mật khẩu mới"
-                  />
-                </div>
+                placeholder="Nhập mật khẩu mới"
+              />
+            </div>
                 <div className={styles.infoRow}>
                   <label className={styles.infoLabel}>Xác nhận mật khẩu mới</label>
                   <input
@@ -325,7 +325,7 @@ export default function Settings() {
                 disabled={savingPassword}
               >
                 {savingPassword ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
-              </button>
+            </button>
             </div>
           </div>
         </div>
@@ -335,7 +335,7 @@ export default function Settings() {
         <h2 className={styles.sectionTitle}>Cài đặt</h2>
         <div className={styles.card}>
           <div>
-            <span className={styles.label}>Sáng và tối</span>
+          <span className={styles.label}>Sáng và tối</span>
             <p className={styles.cardHint}>Áp dụng ngay cho toàn bộ giao diện</p>
           </div>
           <label className={styles.toggle}>
@@ -353,7 +353,7 @@ export default function Settings() {
       <Panel variant="light" className={styles.panel}>
         <div className={styles.card}>
           <div>
-            <span className={styles.label}>Tiếng Anh và Tiếng Việt</span>
+          <span className={styles.label}>Tiếng Anh và Tiếng Việt</span>
             <p className={styles.cardHint}>Tắt: Tiếng Việt, Bật: Tiếng Anh</p>
           </div>
           <label className={styles.toggle}>

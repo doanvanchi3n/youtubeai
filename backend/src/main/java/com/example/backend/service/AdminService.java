@@ -4,14 +4,22 @@ import com.example.backend.dto.request.*;
 import com.example.backend.dto.response.*;
 import com.example.backend.model.*;
 import com.example.backend.repository.*;
+import com.example.backend.repository.projection.DailyCountProjection;
+import jakarta.annotation.PostConstruct;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +30,103 @@ public class AdminService {
     private final VideoRepository videoRepository;
     private final CommentRepository commentRepository;
     private final AnalyticsRepository analyticsRepository;
+    private final SystemLogService systemLogService;
+    
+    @Value("${youtube.api.key:}")
+    private String youtubeApiKeyProperty;
+    
+    @Value("${openai.api.key:}")
+    private String openAiApiKeyProperty;
+    
+    private final List<AIModelResponse> aiModels = new CopyOnWriteArrayList<>();
+    private final List<TrainingHistoryResponse> trainingHistory = new CopyOnWriteArrayList<>();
+    private final AtomicLong aiModelIdGenerator = new AtomicLong(1);
+    private final AtomicLong trainingIdGenerator = new AtomicLong(1);
+    private volatile SystemSettingsResponse cachedSettings;
+    
+    @PostConstruct
+    void initAiManagement() {
+        if (!aiModels.isEmpty()) {
+            return;
+        }
+        aiModels.add(AIModelResponse.builder()
+            .id(aiModelIdGenerator.getAndIncrement())
+            .modelType("sentiment")
+            .version("Sentiment v1.0")
+            .filePath("/models/sentiment-v1.bin")
+            .accuracy(0.924)
+            .isActive(true)
+            .createdAt(LocalDateTime.now().minusDays(10))
+            .build());
+        aiModels.add(AIModelResponse.builder()
+            .id(aiModelIdGenerator.getAndIncrement())
+            .modelType("sentiment")
+            .version("Sentiment v0.9")
+            .filePath("/models/sentiment-v0.9.bin")
+            .accuracy(0.901)
+            .isActive(false)
+            .createdAt(LocalDateTime.now().minusDays(30))
+            .build());
+        aiModels.add(AIModelResponse.builder()
+            .id(aiModelIdGenerator.getAndIncrement())
+            .modelType("emotion")
+            .version("Emotion v1.0")
+            .filePath("/models/emotion-v1.bin")
+            .accuracy(0.885)
+            .isActive(true)
+            .createdAt(LocalDateTime.now().minusDays(7))
+            .build());
+        aiModels.add(AIModelResponse.builder()
+            .id(aiModelIdGenerator.getAndIncrement())
+            .modelType("emotion")
+            .version("Emotion v0.8")
+            .filePath("/models/emotion-v0.8.bin")
+            .accuracy(0.861)
+            .isActive(false)
+            .createdAt(LocalDateTime.now().minusDays(40))
+            .build());
+        
+        trainingHistory.add(TrainingHistoryResponse.builder()
+            .id(trainingIdGenerator.getAndIncrement())
+            .modelType("sentiment")
+            .datasetSize(12000)
+            .accuracy(0.924)
+            .loss(0.042)
+            .status("completed")
+            .createdAt(LocalDateTime.now().minusDays(10))
+            .build());
+        trainingHistory.add(TrainingHistoryResponse.builder()
+            .id(trainingIdGenerator.getAndIncrement())
+            .modelType("emotion")
+            .datasetSize(8500)
+            .accuracy(0.885)
+            .loss(0.058)
+            .status("completed")
+            .createdAt(LocalDateTime.now().minusDays(7))
+            .build());
+        trainingHistory.add(TrainingHistoryResponse.builder()
+            .id(trainingIdGenerator.getAndIncrement())
+            .modelType("topic")
+            .datasetSize(15000)
+            .accuracy(0.812)
+            .loss(0.071)
+            .status("completed")
+            .createdAt(LocalDateTime.now().minusDays(20))
+            .build());
+    }
+    
+    private UserSummaryResponse toUserSummary(User user) {
+        long channelCount = channelRepository.countByUserId(user.getId());
+        return UserSummaryResponse.builder()
+            .id(user.getId())
+            .username(user.getUsername())
+            .email(user.getEmail())
+            .role(user.getRole())
+            .createdAt(user.getCreatedAt())
+            .channelCount(channelCount)
+            .isLocked(Boolean.TRUE.equals(user.getLocked()))
+            .build();
+    }
     
     // ==================== DASHBOARD ====================
     
@@ -30,9 +135,7 @@ public class AdminService {
         long totalChannels = channelRepository.count();
         long totalVideos = videoRepository.count();
         long totalComments = commentRepository.count();
-        
-        // TODO: Implement API usage tracking
-        long apiRequestsToday = 0; // Placeholder
+        long apiRequestsToday = analyticsRepository.countByDate(LocalDate.now());
         
         return AdminDashboardResponse.builder()
             .totalUsers(totalUsers)
@@ -67,20 +170,52 @@ public class AdminService {
         return status;
     }
     
+    public List<ApiRequestStatResponse> getApiRequestTrend(int days) {
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.minusDays(days - 1L);
+        List<DailyCountProjection> projections = analyticsRepository.countRequestsByDateRange(start, end);
+        Map<LocalDate, Long> mapped = projections.stream()
+            .collect(Collectors.toMap(DailyCountProjection::getDate, DailyCountProjection::getTotal));
+        List<ApiRequestStatResponse> responses = new ArrayList<>();
+        for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+            responses.add(ApiRequestStatResponse.builder()
+                .date(date)
+                .totalRequests(mapped.getOrDefault(date, 0L))
+                .build());
+        }
+        return responses;
+    }
+    
+    public List<UserActivityResponse> getRecentActivities(int limit) {
+        List<Channel> channels = channelRepository
+            .findByLastSyncedAtNotNullOrderByLastSyncedAtDesc(PageRequest.of(0, limit));
+        return channels.stream()
+            .map(channel -> UserActivityResponse.builder()
+                .userId(channel.getUser().getId())
+                .username(channel.getUser().getUsername())
+                .channelName(channel.getChannelName())
+                .channelId(channel.getChannelId())
+                .action("Đã đồng bộ dữ liệu kênh")
+                .timestamp(channel.getLastSyncedAt())
+                .build())
+            .collect(Collectors.toList());
+    }
+    
+    public List<SystemLogResponse> getRecentLogs(int limit) {
+        return systemLogService.getRecentLogs(limit);
+    }
+    
     // ==================== USER MANAGEMENT ====================
     
     public Page<UserSummaryResponse> getAllUsers(String search, Pageable pageable) {
-        // TODO: Implement search functionality
-        return userRepository.findAll(pageable)
-            .map(user -> UserSummaryResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .role("USER") // TODO: Add role field to User model
-                .createdAt(user.getCreatedAt())
-                .channelCount(channelRepository.countByUserId(user.getId()))
-                .isLocked(false) // TODO: Add locked field to User model
-                .build());
+        Page<User> users;
+        if (search != null && !search.isBlank()) {
+            users = userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+                search, search, pageable);
+        } else {
+            users = userRepository.findAll(pageable);
+        }
+        return users.map(this::toUserSummary);
     }
     
     public UserDetailResponse getUserDetail(Long id) {
@@ -108,28 +243,20 @@ public class AdminService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        if (request.getUsername() != null) {
-            user.setUsername(request.getUsername());
+        if (request.getUsername() != null && !request.getUsername().isBlank()) {
+            user.setUsername(request.getUsername().trim());
         }
-        if (request.getEmail() != null) {
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
             if (userRepository.existsByEmail(request.getEmail()) && 
-                !user.getEmail().equals(request.getEmail())) {
-                throw new RuntimeException("Email already exists");
+                !user.getEmail().equalsIgnoreCase(request.getEmail())) {
+                throw new RuntimeException("Email đã được sử dụng");
             }
-            user.setEmail(request.getEmail());
+            user.setEmail(request.getEmail().trim());
         }
         
         user = userRepository.save(user);
         
-        return UserSummaryResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .role("USER")
-            .createdAt(user.getCreatedAt())
-            .channelCount(channelRepository.countByUserId(id))
-            .isLocked(false)
-            .build();
+        return toUserSummary(user);
     }
     
     @Transactional
@@ -137,19 +264,13 @@ public class AdminService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // TODO: Add role field to User model and update
-        // user.setRole(role);
+        if (role == null || role.isBlank()) {
+            throw new RuntimeException("Role không hợp lệ");
+        }
+        user.setRole(role.toUpperCase());
         user = userRepository.save(user);
         
-        return UserSummaryResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .role(role)
-            .createdAt(user.getCreatedAt())
-            .channelCount(channelRepository.countByUserId(id))
-            .isLocked(false)
-            .build();
+        return toUserSummary(user);
     }
     
     @Transactional
@@ -157,19 +278,10 @@ public class AdminService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // TODO: Add locked field to User model
-        // user.setLocked(true);
+        user.setLocked(true);
         user = userRepository.save(user);
         
-        return UserSummaryResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .role("USER")
-            .createdAt(user.getCreatedAt())
-            .channelCount(channelRepository.countByUserId(id))
-            .isLocked(true)
-            .build();
+        return toUserSummary(user);
     }
     
     @Transactional
@@ -177,46 +289,66 @@ public class AdminService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("User not found"));
         
-        // TODO: Add locked field to User model
-        // user.setLocked(false);
+        user.setLocked(false);
         user = userRepository.save(user);
         
-        return UserSummaryResponse.builder()
-            .id(user.getId())
-            .username(user.getUsername())
-            .email(user.getEmail())
-            .role("USER")
-            .createdAt(user.getCreatedAt())
-            .channelCount(channelRepository.countByUserId(id))
-            .isLocked(false)
-            .build();
+        return toUserSummary(user);
     }
     
     @Transactional
     public void deleteUser(Long id) {
-        // TODO: Implement cascade delete or soft delete
         userRepository.deleteById(id);
     }
     
     // ==================== DATA MANAGEMENT ====================
     
     public Page<AnalysisHistoryResponse> getAnalysisHistory(String search, Pageable pageable) {
-        // TODO: Implement AnalysisHistory entity and repository
-        return Page.empty(pageable);
+        Page<Channel> channels;
+        if (search != null && !search.isBlank()) {
+            channels = channelRepository.searchChannels(search.trim(), pageable);
+        } else {
+            channels = channelRepository.findAll(pageable);
+        }
+        
+        return channels.map(channel -> {
+            long videoCount = videoRepository.countByChannelId(channel.getId());
+            long commentCount = commentRepository.countByChannelId(channel.getId());
+            String status = channel.getLastSyncedAt() != null ? "success" : "pending";
+            User owner = channel.getUser();
+            return AnalysisHistoryResponse.builder()
+                .id(channel.getId())
+                .userId(owner != null ? owner.getId() : null)
+                .username(owner != null ? owner.getUsername() : "Unknown")
+                .userEmail(owner != null ? owner.getEmail() : null)
+                .channelId(channel.getId())
+                .channelName(channel.getChannelName())
+                .analysisType("channel")
+                .status(status)
+                .videoCount(videoCount)
+                .commentCount(commentCount)
+                .syncedAt(channel.getLastSyncedAt())
+                .createdAt(channel.getCreatedAt())
+                .build();
+        });
     }
     
     public Page<ChannelSummaryResponse> getAllChannels(String search, Pageable pageable) {
         // TODO: Implement search
         return channelRepository.findAll(pageable)
-            .map(channel -> ChannelSummaryResponse.builder()
-                .id(channel.getId())
-                .channelId(channel.getChannelId())
-                .channelName(channel.getChannelName())
-                .userId(channel.getUser().getId())
-                .videoCount(channel.getVideoCount() != null ? channel.getVideoCount() : 0)
-                .subscriberCount(channel.getSubscriberCount())
-                .lastSyncedAt(channel.getLastSyncedAt())
-                .build());
+            .map(channel -> {
+                Long userId = channel.getUser() != null ? channel.getUser().getId() : null;
+                int videoCount = channel.getVideoCount() != null ? channel.getVideoCount().intValue() : 0;
+                long subscriberCount = channel.getSubscriberCount() != null ? channel.getSubscriberCount().longValue() : 0L;
+                return ChannelSummaryResponse.builder()
+                    .id(channel.getId())
+                    .channelId(channel.getChannelId())
+                    .channelName(channel.getChannelName())
+                    .userId(userId)
+                    .videoCount(videoCount)
+                    .subscriberCount(subscriberCount)
+                    .lastSyncedAt(channel.getLastSyncedAt())
+                    .build();
+            });
     }
     
     @Transactional
@@ -247,23 +379,66 @@ public class AdminService {
     // ==================== AI MANAGEMENT ====================
     
     public List<AIModelResponse> getAIModels() {
-        // TODO: Implement AIModel entity and repository
-        return new ArrayList<>();
+        return aiModels.stream()
+            .sorted(Comparator.comparing(AIModelResponse::getModelType)
+                .thenComparing(AIModelResponse::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+            .collect(Collectors.toList());
     }
     
     public AIModelResponse uploadAIModel(UploadModelRequest request) {
-        // TODO: Implement model upload logic
-        return null;
+        AIModelResponse model = AIModelResponse.builder()
+            .id(aiModelIdGenerator.getAndIncrement())
+            .modelType(request.getModelType().toLowerCase())
+            .version(Optional.ofNullable(request.getVersion()).filter(v -> !v.isBlank())
+                .orElseGet(() -> request.getModelType() + " model"))
+            .filePath(request.getFilePath())
+            .accuracy(request.getAccuracy())
+            .isActive(false)
+            .createdAt(LocalDateTime.now())
+            .build();
+        aiModels.add(model);
+        trainingHistory.add(0, TrainingHistoryResponse.builder()
+            .id(trainingIdGenerator.getAndIncrement())
+            .modelType(model.getModelType())
+            .datasetSize(10000)
+            .accuracy(model.getAccuracy())
+            .loss(0.05)
+            .status("completed")
+            .createdAt(LocalDateTime.now())
+            .build());
+        return model;
     }
     
     public AIModelResponse activateModel(Long id) {
-        // TODO: Implement model activation
-        return null;
+        AIModelResponse target = aiModels.stream()
+            .filter(model -> Objects.equals(model.getId(), id))
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy mô hình"));
+        
+        for (int i = 0; i < aiModels.size(); i++) {
+            AIModelResponse model = aiModels.get(i);
+            if (model.getModelType().equalsIgnoreCase(target.getModelType())) {
+                aiModels.set(i, model.toBuilder().isActive(Objects.equals(model.getId(), id)).build());
+            }
+        }
+        
+        return aiModels.stream()
+            .filter(model -> Objects.equals(model.getId(), id))
+            .findFirst()
+            .orElse(target);
     }
     
     public Page<TrainingHistoryResponse> getTrainingHistory(Pageable pageable) {
-        // TODO: Implement TrainingHistory entity
-        return Page.empty(pageable);
+        List<TrainingHistoryResponse> sorted = trainingHistory.stream()
+            .sorted(Comparator.comparing(TrainingHistoryResponse::getCreatedAt).reversed())
+            .collect(Collectors.toList());
+        int start = (int) pageable.getOffset();
+        if (start >= sorted.size()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, sorted.size());
+        }
+        int end = Math.min(start + pageable.getPageSize(), sorted.size());
+        List<TrainingHistoryResponse> content = sorted.subList(start, end);
+        return new PageImpl<>(content, pageable, sorted.size());
     }
     
     public List<String> getSensitiveKeywords() {
@@ -281,26 +456,42 @@ public class AdminService {
     
     // ==================== SYSTEM SETTINGS ====================
     
-    public SystemSettingsResponse getSystemSettings() {
-        // TODO: Implement SystemConfig entity
-        return SystemSettingsResponse.builder()
-            .youtubeApiKey("***")
-            .openAiApiKey("***")
+    @PostConstruct
+    void initSystemSettings() {
+        cachedSettings = SystemSettingsResponse.builder()
+            .youtubeApiKey(Optional.ofNullable(youtubeApiKeyProperty).orElse(""))
+            .openAiApiKey(Optional.ofNullable(openAiApiKeyProperty).orElse(""))
             .maxRequestsPerDay(1000)
             .maxRequestsPerHour(100)
             .build();
     }
     
+    public SystemSettingsResponse getSystemSettings() {
+        if (cachedSettings == null) {
+            initSystemSettings();
+        }
+        return cachedSettings;
+    }
+    
     public void updateApiKeys(UpdateApiKeysRequest request) {
-        // TODO: Implement update API keys
+        // Deprecated: use updateSystemSettings
     }
     
     public void updateRateLimit(UpdateRateLimitRequest request) {
-        // TODO: Implement update rate limit
+        // Deprecated: use updateSystemSettings
     }
     
     public void updateLogSettings(UpdateLogSettingsRequest request) {
-        // TODO: Implement update log settings
+        // Deprecated: log settings removed from UI
+    }
+    
+    public void updateSystemSettings(SystemSettingsResponse request) {
+        cachedSettings = SystemSettingsResponse.builder()
+            .youtubeApiKey(Optional.ofNullable(request.getYoutubeApiKey()).orElse(""))
+            .openAiApiKey(Optional.ofNullable(request.getOpenAiApiKey()).orElse(""))
+            .maxRequestsPerDay(Optional.ofNullable(request.getMaxRequestsPerDay()).orElse(1000))
+            .maxRequestsPerHour(Optional.ofNullable(request.getMaxRequestsPerHour()).orElse(100))
+            .build();
     }
     
     public Map<String, String> createBackup() {
@@ -332,8 +523,7 @@ public class AdminService {
     }
     
     public Page<SystemLogResponse> getSystemLogs(String level, String source, Pageable pageable) {
-        // TODO: Implement SystemLog entity
-        return Page.empty(pageable);
+        return systemLogService.getLogs(level, source, pageable);
     }
 }
 

@@ -3,33 +3,24 @@
   gap: 28px;
 }
 
-.tabs {
+.errorBanner {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #b83232;
   display: flex;
-  gap: 12px;
-  border-bottom: 2px solid #e2e9f3;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
-.tab {
-  padding: 12px 24px;
+.errorBanner button {
   background: transparent;
   border: none;
-  border-bottom: 3px solid transparent;
-  color: #6f7c8b;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: -2px;
-}
-
-.tab:hover {
-  color: #26E2B3;
-}
-
-.tabActive {
-  color: #26E2B3;
-  border-bottom-color: #26E2B3;
+  color: inherit;
   font-weight: 600;
+  cursor: pointer;
 }
 
 .searchPanel {
@@ -155,20 +146,47 @@
   color: #1db59c;
 }
 
-.statusBadge {
+.statusBadge,
+.statusBadgeSuccess,
+.statusBadgePending,
+.statusBadgeDanger {
   display: inline-block;
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
+}
+
+.statusBadgeSuccess {
   background: rgba(38, 226, 179, 0.15);
   color: #1db59c;
+}
+
+.statusBadge {
+  background: rgba(38, 226, 179, 0.15);
+  color: #1db59c;
+}
+
+.statusBadgePending {
+  background: rgba(255, 193, 7, 0.15);
+  color: #c48c00;
+}
+
+.statusBadgeDanger {
+  background: rgba(255, 99, 132, 0.15);
+  color: #ff5a6b;
 }
 
 .dataInfo {
   display: grid;
   gap: 4px;
   font-size: 12px;
+  color: #6f7c8b;
+}
+
+.loadingCell {
+  padding: 32px;
+  text-align: center;
   color: #6f7c8b;
 }
 
@@ -240,8 +258,60 @@
   color: #26E2B3;
 }
 
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .pageInfo {
   color: #6f7c8b;
   font-size: 14px;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  width: 420px;
+  max-width: 90%;
+}
+
+.modalContent h3 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  color: #1f2c35;
+}
+
+.modalBody {
+  display: grid;
+  gap: 12px;
+}
+
+.modalBody label {
+  font-size: 13px;
+  color: #8c97a6;
+  text-transform: uppercase;
+}
+
+.modalBody p {
+  margin: 4px 0 0;
+  font-weight: 600;
+  color: #1f2c35;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 

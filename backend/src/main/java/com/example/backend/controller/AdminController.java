@@ -2,6 +2,11 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.request.*;
 import com.example.backend.dto.response.*;
+import com.example.backend.exception.ForbiddenException;
+import com.example.backend.exception.UnauthorizedException;
+import com.example.backend.model.User;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.security.JwtTokenProvider;
 import com.example.backend.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +15,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestHeader;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -22,6 +31,35 @@ import java.util.Map;
 public class AdminController {
     
     private final AdminService adminService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
+    
+    @ModelAttribute
+    public void verifyAdmin(@RequestHeader(value = "Authorization", required = false) String authHeader,
+                            HttpServletRequest request) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return;
+        }
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UnauthorizedException("Thiếu thông tin xác thực");
+        }
+        String token = authHeader.substring(7);
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new UnauthorizedException("Token không hợp lệ hoặc đã hết hạn");
+        }
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        if (userId == null) {
+            throw new UnauthorizedException("Token không chứa thông tin người dùng");
+        }
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new UnauthorizedException("Không tìm thấy người dùng"));
+        if (Boolean.TRUE.equals(user.getLocked())) {
+            throw new ForbiddenException("Tài khoản đã bị khóa, vui lòng liên hệ quản trị viên");
+        }
+        if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+            throw new ForbiddenException("Bạn không có quyền truy cập trang quản trị");
+        }
+    }
     
     // ==================== DASHBOARD ====================
     
@@ -35,6 +73,27 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> getServerStatus() {
         Map<String, Object> status = adminService.getServerStatus();
         return ResponseEntity.ok(status);
+    }
+    
+    @GetMapping("/dashboard/api-requests")
+    public ResponseEntity<List<ApiRequestStatResponse>> getApiRequestTrend(
+            @RequestParam(defaultValue = "14") int days) {
+        List<ApiRequestStatResponse> stats = adminService.getApiRequestTrend(days);
+        return ResponseEntity.ok(stats);
+    }
+    
+    @GetMapping("/dashboard/activity")
+    public ResponseEntity<List<UserActivityResponse>> getRecentActivity(
+            @RequestParam(defaultValue = "8") int limit) {
+        List<UserActivityResponse> activities = adminService.getRecentActivities(limit);
+        return ResponseEntity.ok(activities);
+    }
+    
+    @GetMapping("/dashboard/logs")
+    public ResponseEntity<List<SystemLogResponse>> getRecentLogs(
+            @RequestParam(defaultValue = "5") int limit) {
+        List<SystemLogResponse> logs = adminService.getRecentLogs(limit);
+        return ResponseEntity.ok(logs);
     }
     
     // ==================== USER MANAGEMENT ====================
@@ -198,6 +257,12 @@ public class AdminController {
     @PutMapping("/settings/logs")
     public ResponseEntity<?> updateLogSettings(@Valid @RequestBody UpdateLogSettingsRequest request) {
         adminService.updateLogSettings(request);
+        return ResponseEntity.ok().build();
+    }
+    
+    @PutMapping("/settings")
+    public ResponseEntity<?> updateSystemSettings(@Valid @RequestBody SystemSettingsResponse request) {
+        adminService.updateSystemSettings(request);
         return ResponseEntity.ok().build();
     }
     

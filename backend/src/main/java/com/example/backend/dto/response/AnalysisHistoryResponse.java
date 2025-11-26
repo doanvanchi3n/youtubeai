@@ -14,10 +14,14 @@ public class AnalysisHistoryResponse {
     private Long id;
     private Long userId;
     private String username;
+    private String userEmail;
     private Long channelId;
     private String channelName;
     private String analysisType; // channel, video
     private String status; // success, failed
+    private Long videoCount;
+    private Long commentCount;
+    private LocalDateTime syncedAt;
     private LocalDateTime createdAt;
 }
 

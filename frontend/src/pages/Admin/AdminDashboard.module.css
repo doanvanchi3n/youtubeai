@@ -3,6 +3,61 @@
   gap: 28px;
 }
 
+.dashboardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dashboardTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2c35;
+  margin: 0;
+}
+
+.dashboardSubtitle {
+  margin: 4px 0 0;
+  color: #6f7c8b;
+  font-size: 14px;
+}
+
+.refreshButton {
+  background: #26e2b3;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.refreshButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inlineError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: rgba(255, 107, 107, 0.12);
+  color: #b83232;
+  font-weight: 500;
+}
+
+.inlineError button {
+  background: transparent;
+  border: none;
+  color: #b83232;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .metricsRow {
   display: grid;
   grid-template-columns: repeat(4, minmax(256px, 1fr));
@@ -61,9 +116,54 @@
 }
 
 .chartPlaceholder {
-  height: 180px;
+  min-height: 180px;
   border-radius: 14px;
   background: #d9dce2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #576575;
+  font-size: 14px;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.barChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 220px;
+  padding: 12px;
+}
+
+.barWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.bar {
+  width: 28px;
+  background: linear-gradient(180deg, rgba(38, 226, 179, 0.9), rgba(29, 181, 156, 0.9));
+  border-radius: 10px 10px 4px 4px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 6px;
+  transition: opacity 0.2s ease;
+}
+
+.barValue {
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.barLabel {
+  font-size: 12px;
+  color: #6f7c8b;
 }
 
 .serverStatus {
@@ -116,6 +216,11 @@
 .statusOffline {
   background: rgba(255, 107, 107, 0.15);
   color: #ff6b6b;
+}
+
+.statusUnknown {
+  background: rgba(229, 231, 235, 0.6);
+  color: #6f7c8b;
 }
 
 .statusDot {
@@ -207,5 +312,21 @@
 .activityTime {
   font-size: 12px;
   color: #6f7c8b;
+}
+
+.activityMeta {
+  font-size: 12px;
+  color: #8c97a6;
+}
+
+.placeholderText {
+  color: inherit;
+}
+
+.stateMessage {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #6f7c8b;
+  font-style: italic;
 }
 

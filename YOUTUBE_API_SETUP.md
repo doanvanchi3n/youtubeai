@@ -18,7 +18,7 @@ Tài liệu này hướng dẫn quy trình tích hợp dữ liệu YouTube công
 
 1. Vào **APIs & Services → Credentials**.
 2. Chọn **Create credentials → API key**.
-3. Copy key vừa tạo, sau đó chỉnh **Restrict key** (nên giới hạn domain/IP để tránh lộ).
+3. Copy key vừa tạo, sau đó chỉnh **image.png** (nên giới hạn domain/IP để tránh lộ).
 
 ### 2.2 OAuth Client (tuỳ chọn)
 

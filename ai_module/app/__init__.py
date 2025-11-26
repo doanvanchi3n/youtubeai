@@ -37,5 +37,9 @@ def create_app(config_name='development'):
     app.register_blueprint(content_bp, url_prefix='/api')
     app.register_blueprint(analytics_bp, url_prefix='/api')
     
+    print("✓ AI Suggestion service ready (ContentService)")
+    print("  - Endpoints: /api/generate-content, /api/generate-suggestions")
+    print("  - Tech: TF-IDF, Google Trends, YouTube autocomplete, HuggingFace (optional)")
+    
     return app
 

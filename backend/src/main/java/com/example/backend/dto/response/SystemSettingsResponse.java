@@ -14,8 +14,5 @@ public class SystemSettingsResponse {
     private String openAiApiKey;
     private Integer maxRequestsPerDay;
     private Integer maxRequestsPerHour;
-    private Boolean logApiRequests;
-    private Boolean logAbnormalRequests;
-    private Boolean logAiProcessing;
 }
 

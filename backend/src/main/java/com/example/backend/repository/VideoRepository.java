@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 public interface VideoRepository extends JpaRepository<Video, Long> {
     Optional<Video> findByVideoId(String videoId);
     List<Video> findByChannelId(Long channelId);
+    void deleteByChannelId(Long channelId);
     
     @Query("""
         SELECT v FROM Video v 

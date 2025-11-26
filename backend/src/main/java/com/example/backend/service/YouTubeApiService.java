@@ -10,8 +10,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -196,12 +198,41 @@ public class YouTubeApiService {
         try {
             String response = restTemplate.getForObject(builder.toUriString(), String.class);
             return objectMapper.readTree(response);
+        } catch (HttpClientErrorException ex) {
+            if ("/commentThreads".equals(path)
+                && ex.getStatusCode() == HttpStatus.FORBIDDEN
+                && isCommentsDisabledError(ex.getResponseBodyAsString())) {
+                String videoId = params.get("videoId");
+                log.warn("Video {} đã tắt bình luận. Bỏ qua commentThreads.", videoId);
+                return objectMapper.createObjectNode();
+            }
+            log.error("Lỗi khi gọi YouTube API {} với params {}: {}", path, params, ex.getMessage());
+            throw new YouTubeApiException("Không thể kết nối tới YouTube API", ex);
         } catch (RestClientException ex) {
             log.error("Lỗi khi gọi YouTube API {} với params {}: {}", path, params, ex.getMessage());
             throw new YouTubeApiException("Không thể kết nối tới YouTube API", ex);
         } catch (IOException ex) {
             throw new YouTubeApiException("Không parse được phản hồi YouTube API", ex);
         }
+    }
+    
+    private boolean isCommentsDisabledError(String responseBody) {
+        if (!StringUtils.hasText(responseBody)) {
+            return false;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode errors = root.path("error").path("errors");
+            if (errors.isArray()) {
+                for (JsonNode error : errors) {
+                    if ("commentsDisabled".equalsIgnoreCase(error.path("reason").asText())) {
+                        return true;
+                    }
+                }
+            }
+        } catch (IOException ignored) {
+        }
+        return responseBody.contains("commentsDisabled");
     }
     
     private YouTubeChannelInfo parseChannel(JsonNode node) {
@@ -227,6 +258,16 @@ public class YouTubeApiService {
         JsonNode snippet = node.path("snippet");
         JsonNode statistics = node.path("statistics");
         JsonNode contentDetails = node.path("contentDetails");
+        List<String> tags = new ArrayList<>();
+        JsonNode tagsNode = snippet.path("tags");
+        if (tagsNode.isArray()) {
+            tagsNode.forEach(tagNode -> {
+                String tag = tagNode.asText(null);
+                if (StringUtils.hasText(tag)) {
+                    tags.add(tag);
+                }
+            });
+        }
         LocalDateTime publishedAt = null;
         try {
             String publishedRaw = snippet.path("publishedAt").asText(null);
@@ -262,6 +303,8 @@ public class YouTubeApiService {
             .viewCount(viewCount)
             .likeCount(likeCount)
             .commentCount(commentCount)
+            .tags(tags.isEmpty() ? null : tags)
+            .categoryId(snippet.path("categoryId").asText(null))
             .build();
     }
     

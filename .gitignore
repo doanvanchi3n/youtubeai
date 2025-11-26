@@ -2,7 +2,10 @@
 venv/
 env/
 ENV/
-
+# Env files (không commit secret)
+.env
+*.env
+ai_module/.env
 # Python
 __pycache__/
 *.py[cod]
@@ -37,3 +40,7 @@ Thumbs.db
 
 # Logs
 *.log
+# Ignore PhoBERT models (rất nặng, không push lên GitHub)
+ai_module/app/data/models/phobert_emotion/
+ai_module/app/data/models/phobert_sentiment/
+*.safetensors

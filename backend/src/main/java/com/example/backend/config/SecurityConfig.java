@@ -37,6 +37,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/user/**").permitAll() // Controllers handle JWT manually
                 .requestMatchers("/api/dashboard/**").permitAll() // Token validated inside controller
                 .requestMatchers("/api/youtube/**").permitAll()
+                .requestMatchers("/api/admin/**").permitAll() // Manual admin token validation
+                .requestMatchers("/api/comments/**").permitAll() // Token validated inside controller
+                .requestMatchers("/api/video-analytics/**").permitAll() // Token validated inside controller
+                .requestMatchers("/api/community/**").permitAll() // Token validated inside controller
+                .requestMatchers("/api/ai/**").permitAll()
                 .anyRequest().authenticated()
             );
         

@@ -48,6 +48,14 @@
   height: 56px;
   border-radius: 50%;
   background: #89abe3;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .content {
@@ -112,6 +120,13 @@
   height: 64px;
   border-radius: 10px;
   background: #d8dee6;
+  overflow: hidden;
+}
+
+.topThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .topInfo {
@@ -122,6 +137,12 @@
 .topTitle {
   font-weight: 600;
   color: #1f2c35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
 }
 
 .topMeta {
@@ -151,4 +172,128 @@
   margin-bottom: 18px;
 }
 
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+  color: #98a3b1;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid #4CAF50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error State */
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 16px;
+  text-align: center;
+}
+
+.errorIcon {
+  font-size: 48px;
+}
+
+.errorMessage {
+  color: #F44336;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.retryButton {
+  padding: 10px 24px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.retryButton:hover {
+  background: #45a049;
+}
+
+.retryButton:active {
+  background: #3d8b40;
+}
+
+/* Empty State */
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.emptyMessage {
+  color: #98a3b1;
+  font-size: 16px;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.paginationButton {
+  padding: 8px 16px;
+  background: #ffffff;
+  color: #1f2c35;
+  border: 1px solid #ccd7e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #4CAF50;
+}
+
+.paginationButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginationInfo {
+  color: #98a3b1;
+  font-size: 14px;
+  font-weight: 500;
+}
 

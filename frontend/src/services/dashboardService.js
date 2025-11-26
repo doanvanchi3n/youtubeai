@@ -7,6 +7,10 @@ export const dashboardService = {
       body: { url }
     })
   },
+  
+  getAnalyzeJob(jobId) {
+    return authFetch(`/youtube/analyze/${jobId}`)
+  },
 
   getMetrics(channelId) {
     return authFetch(`/dashboard/metrics${buildQueryString({ channelId })}`)

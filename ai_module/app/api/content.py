@@ -42,3 +42,16 @@ def generate_content():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+@bp.route('/generate-suggestions', methods=['POST'])
+def generate_suggestions():
+    """
+    Generate AI suggestions (titles/description/tags/trends)
+    """
+    try:
+        data = request.get_json() or {}
+        result = content_service.generate_suggestions(data)
+        return jsonify(result), 200
+    except Exception as e:  # pragma: no cover
+        return jsonify({'error': str(e)}), 500
+

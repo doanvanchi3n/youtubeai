@@ -3,6 +3,26 @@
   gap: 28px;
 }
 
+.errorBanner {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #b83232;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.errorBanner button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .searchPanel {
   padding: 24px 32px;
 }
@@ -88,6 +108,12 @@
   color: #1f2c35;
 }
 
+.loadingCell {
+  padding: 32px;
+  text-align: center;
+  color: #6f7c8b;
+}
+
 .table tbody tr:hover {
   background: #f8fafc;
 }
@@ -124,6 +150,11 @@
   font-weight: 600;
   background: rgba(38, 226, 179, 0.15);
   color: #1db59c;
+}
+
+.statusBadgeDanger {
+  background: rgba(255, 99, 132, 0.15);
+  color: #ff5a6b;
 }
 
 .actions {
@@ -194,8 +225,91 @@
   color: #26E2B3;
 }
 
+.pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .pageInfo {
   color: #6f7c8b;
   font-size: 14px;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  width: 420px;
+  max-width: 90%;
+}
+
+.modalContent h3 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  color: #1f2c35;
+}
+
+.modalBody {
+  display: grid;
+  gap: 12px;
+}
+
+.modalBody label {
+  font-size: 13px;
+  color: #8c97a6;
+  text-transform: uppercase;
+}
+
+.modalBody p {
+  margin: 4px 0 0;
+  font-weight: 600;
+  color: #1f2c35;
+}
+
+.modalForm {
+  display: grid;
+  gap: 16px;
+}
+
+.modalForm label {
+  display: grid;
+  gap: 6px;
+  color: #576575;
+  font-weight: 600;
+}
+
+.modalForm input,
+.modalForm select {
+  border: 1px solid rgba(110, 124, 139, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.saveBtn {
+  background: #26e2b3;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
 }
 

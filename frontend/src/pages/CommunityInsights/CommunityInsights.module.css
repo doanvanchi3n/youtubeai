@@ -103,4 +103,26 @@
   padding: 28px 32px;
 }
 
+.loading {
+  padding: 20px;
+  text-align: center;
+  color: #7a858f;
+  font-size: 14px;
+}
+
+.emptyMessage {
+  padding: 20px;
+  text-align: center;
+  color: #9aa1aa;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.errorMessage {
+  padding: 20px;
+  text-align: center;
+  color: #d7263d;
+  font-weight: 600;
+}
+
 

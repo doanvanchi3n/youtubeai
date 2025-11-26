@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import Panel from '../../components/Panel/Panel.jsx'
 import likeIco from '../../assets/icons/bx-like.svg'
 import commentIco from '../../assets/icons/comment-multiple-outline.svg'
@@ -40,6 +41,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analysisJob, setAnalysisJob] = useState(null)
+  const jobPollRef = useRef(null)
 
   const loadDashboard = useCallback(
     async (channelId, { silent = false } = {}) => {
@@ -86,30 +90,65 @@ export default function Dashboard() {
     loadDashboard().catch(() => {})
   }, [loadDashboard])
 
+  const stopJobPolling = useCallback(() => {
+    if (jobPollRef.current) {
+      clearInterval(jobPollRef.current)
+      jobPollRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      stopJobPolling()
+    }
+  }, [stopJobPolling])
+
+  const pollJobStatus = useCallback(
+    async (jobId) => {
+      if (!jobId) return
+      try {
+        const job = await dashboardService.getAnalyzeJob(jobId)
+        setAnalysisJob(job)
+        if (job.status === 'SUCCESS') {
+          stopJobPolling()
+          setAnalyzing(false)
+          setError(null)
+          await loadDashboard(job.channelId)
+          setAnalysisJob(null)
+        } else if (job.status === 'FAILED') {
+          stopJobPolling()
+          setAnalyzing(false)
+          setError(job.error || 'Phân tích thất bại. Vui lòng thử lại.')
+        }
+      } catch (err) {
+        console.error(err)
+        stopJobPolling()
+        setAnalyzing(false)
+        setError(err.message || 'Không thể lấy trạng thái phân tích')
+      }
+    },
+    [loadDashboard, stopJobPolling]
+  )
+
   const handleAnalyze = async (event) => {
     event.preventDefault()
-    if (!searchValue.trim()) {
+    if (!searchValue.trim() || analyzing) {
       return
     }
     try {
       setError(null)
-      const result = await dashboardService.analyzeUrl(searchValue.trim())
-      const resolvedChannelId =
-        result?.channelId ||
-        result?.youtubeChannelId ||
-        result?.channel?.channelId ||
-        result?.channel?.id ||
-        result?.id
-
-      if (!resolvedChannelId) {
-        throw new Error('Không xác định được channelId từ kết quả phân tích')
-      }
-
-      await loadDashboard(resolvedChannelId)
+      setAnalyzing(true)
+      const job = await dashboardService.analyzeUrl(searchValue.trim())
+      setAnalysisJob(job)
       setSearchValue('')
+      await pollJobStatus(job.jobId)
+      if (!jobPollRef.current) {
+        jobPollRef.current = setInterval(() => pollJobStatus(job.jobId), 3000)
+      }
     } catch (err) {
       console.error(err)
       setError(err.message || 'Không thể phân tích URL. Vui lòng thử lại.')
+      setAnalyzing(false)
     }
   }
 
@@ -160,8 +199,12 @@ export default function Dashboard() {
               onChange={(e) => setSearchValue(e.target.value)}
             />
           </div>
-          <button type="submit" className={styles.searchButton} disabled={loading || refreshing}>
-            Phân tích
+          <button
+            type="submit"
+            className={styles.searchButton}
+            disabled={loading || refreshing || analyzing}
+          >
+            {analyzing ? 'Đang phân tích...' : 'Phân tích'}
           </button>
         </form>
         {channelInfo && (
@@ -191,12 +234,22 @@ export default function Dashboard() {
             )}
           </div>
         )}
-        {(error || loading || refreshing) && (
+        {(error || loading || refreshing || analysisJob) && (
           <div className={styles.statusRow}>
             {error && <span className={styles.errorText}>{error}</span>}
             {(loading || refreshing) && (
               <span className={styles.statusText}>
                 {loading ? 'Đang tải dashboard...' : 'Đang làm mới dữ liệu...'}
+              </span>
+            )}
+            {analysisJob && !error && (
+              <span className={styles.statusText}>
+                {analysisJob.status === 'SUCCESS'
+                  ? 'Hoàn tất đồng bộ'
+                  : analysisJob.status === 'FAILED'
+                    ? 'Phân tích thất bại'
+                    : 'Đang phân tích dữ liệu...'}
+                {analysisJob.progress != null ? ` (${analysisJob.progress}%)` : ''}
               </span>
             )}
           </div>
@@ -263,49 +316,95 @@ function TrendChart({ data, isLoading }) {
     return <div className={styles.chartPlaceholder}>Chưa có dữ liệu xu hướng</div>
   }
 
-  const maxValue = Math.max(
-    ...data.map((point) => Math.max(point.views ?? 0, point.likes ?? 0, point.comments ?? 0)),
-    1
-  )
+  // Format data for Recharts - use date or index as label
+  const chartData = data.map((point, index) => ({
+    name: point.date || `#${index + 1}`,
+    views: point.views ?? 0,
+    likes: point.likes ?? 0,
+    comments: point.comments ?? 0
+  }))
 
-  const buildPolyline = (key) => {
-    if (data.length === 1) {
-      const value = (data[0][key] ?? 0) / maxValue
-      const y = 100 - value * 100
-      return `0,${y} 100,${y}`
+  // Custom tooltip formatter
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{
+          backgroundColor: '#ffffff',
+          border: '1px solid #e0e0e0',
+          borderRadius: '8px',
+          padding: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+        }}>
+          <p style={{ margin: '0 0 8px 0', fontWeight: 600, color: '#1f2c35' }}>
+            {payload[0].payload.name}
+          </p>
+          {payload.map((entry, index) => (
+            <p key={index} style={{ 
+              margin: '4px 0', 
+              color: entry.color,
+              fontSize: '14px'
+            }}>
+              {entry.name}: {formatCompactNumber(entry.value)}
+            </p>
+          ))}
+        </div>
+      )
     }
-
-    return data
-      .map((point, index) => {
-        const x = (index / (data.length - 1)) * 100
-        const normalized = (point[key] ?? 0) / maxValue
-        const y = 100 - normalized * 100
-        return `${x},${Math.max(0, Math.min(100, y))}`
-      })
-      .join(' ')
+    return null
   }
 
   return (
-    <div className={styles.lineChart}>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <polyline points={buildPolyline('views')} stroke="#2ECFB9" />
-        <polyline points={buildPolyline('likes')} stroke="#4D7CFE" />
-        <polyline points={buildPolyline('comments')} stroke="#FFAD5B" />
-      </svg>
-      <div className={styles.legend}>
-        <span>
-          <i style={{ backgroundColor: '#2ECFB9' }} />
-          Views
-        </span>
-        <span>
-          <i style={{ backgroundColor: '#4D7CFE' }} />
-          Likes
-        </span>
-        <span>
-          <i style={{ backgroundColor: '#FFAD5B' }} />
-          Comments
-        </span>
-      </div>
+    <div className={styles.lineChartContainer}>
+      <ResponsiveContainer width="100%" height={320}>
+        <LineChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e8ecef" />
+          <XAxis 
+            dataKey="name" 
+            stroke="#98a3b1"
+            style={{ fontSize: '12px' }}
+            tick={{ fill: '#6f7c8b' }}
+          />
+          <YAxis 
+            stroke="#98a3b1"
+            style={{ fontSize: '12px' }}
+            tick={{ fill: '#6f7c8b' }}
+            tickFormatter={(value) => formatCompactNumber(value)}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend 
+            wrapperStyle={{ paddingTop: '20px' }}
+            iconType="line"
+            formatter={(value) => value}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="views" 
+            stroke="#2ECFB9" 
+            strokeWidth={3}
+            dot={{ fill: '#2ECFB9', r: 4 }}
+            activeDot={{ r: 6 }}
+            name="Views"
+          />
+          <Line 
+            type="monotone" 
+            dataKey="likes" 
+            stroke="#4D7CFE" 
+            strokeWidth={3}
+            dot={{ fill: '#4D7CFE', r: 4 }}
+            activeDot={{ r: 6 }}
+            name="Likes"
+          />
+          <Line 
+            type="monotone" 
+            dataKey="comments" 
+            stroke="#FFAD5B" 
+            strokeWidth={3}
+            dot={{ fill: '#FFAD5B', r: 4 }}
+            activeDot={{ r: 6 }}
+            name="Comments"
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   )
 }

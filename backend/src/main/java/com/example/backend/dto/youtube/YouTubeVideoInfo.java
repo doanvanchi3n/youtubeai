@@ -1,9 +1,9 @@
 package com.example.backend.dto.youtube;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import lombok.Builder;
 import lombok.Value;
-
-import java.time.LocalDateTime;
 
 @Value
 @Builder
@@ -18,5 +18,7 @@ public class YouTubeVideoInfo {
     Long viewCount;
     Long likeCount;
     Integer commentCount;
+    List<String> tags;
+    String categoryId;
 }
 

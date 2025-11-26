@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+### VS Code ###
+.vscode/
+
+# Env files (không commit secret)
+.env
+*.env

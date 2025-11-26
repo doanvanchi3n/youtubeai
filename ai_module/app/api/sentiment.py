@@ -27,7 +27,11 @@ def analyze_sentiment():
     }
     """
     try:
-        data = request.get_json()
+        # Ensure UTF-8 encoding
+        if request.content_type and 'charset' not in request.content_type:
+            request.content_type = request.content_type + '; charset=utf-8'
+        
+        data = request.get_json(force=True)
         
         if not data or 'text' not in data:
             return jsonify({'error': 'Missing "text" field'}), 400

@@ -13,17 +13,16 @@ import com.example.backend.repository.AnalyticsRepository;
 import com.example.backend.repository.ChannelRepository;
 import com.example.backend.repository.CommentRepository;
 import com.example.backend.repository.VideoRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -35,16 +34,21 @@ public class DashboardService {
     private final CommentRepository commentRepository;
     private final AnalyticsRepository analyticsRepository;
     
+    @SuppressWarnings("ConstantConditions")
     public DashboardMetricsResponse getMetrics(Long userId, String channelIdentifier) {
         Channel channel = resolveChannel(userId, channelIdentifier);
         Long channelDbId = channel.getId();
         
-        long totalVideos = channel.getVideoCount() != null
-            ? channel.getVideoCount()
-            : videoRepository.countByChannelId(channelDbId);
-        long totalViews = channel.getViewCount() != null
-            ? channel.getViewCount()
-            : safeLong(videoRepository.sumViewCountByChannelId(channelDbId));
+        Integer videoCount = channel.getVideoCount();
+        long totalVideos = videoCount != null ? videoCount.longValue() : 0L;
+        if (totalVideos == 0) {
+            totalVideos = videoRepository.countByChannelId(channelDbId);
+        }
+        Long viewCount = channel.getViewCount();
+        long totalViews = viewCount != null ? viewCount : 0L;
+        if (totalViews == 0) {
+            totalViews = safeLong(videoRepository.sumViewCountByChannelId(channelDbId));
+        }
         long totalLikes = safeLong(videoRepository.sumLikeCountByChannelId(channelDbId));
         long totalComments = safeLong(videoRepository.sumCommentCountByChannelId(channelDbId));
         if (totalComments == 0) {
@@ -70,7 +74,23 @@ public class DashboardService {
         Channel channel = resolveChannel(userId, channelIdentifier);
         
         LocalDate safeEnd = endDate != null ? endDate : LocalDate.now();
-        LocalDate safeStart = startDate != null ? startDate : safeEnd.minusDays(29);
+        LocalDate safeStart;
+        
+        if (startDate != null) {
+            safeStart = startDate;
+        } else {
+            // Get first analytics entry date (first sync) as the starting point
+            List<Analytics> allAnalytics = analyticsRepository.findByChannelIdOrderByDateAsc(channel.getId());
+            if (!allAnalytics.isEmpty()) {
+                safeStart = allAnalytics.get(0).getDate();
+            } else {
+                // Fallback to channel creation date if no analytics exist
+                safeStart = channel.getCreatedAt() != null 
+                    ? channel.getCreatedAt().toLocalDate() 
+                    : safeEnd.minusDays(29);
+            }
+        }
+        
         if (safeStart.isAfter(safeEnd)) {
             LocalDate tmp = safeStart;
             safeStart = safeEnd;
@@ -100,6 +120,23 @@ public class DashboardService {
                     .build()
             );
             cursor = cursor.plusDays(1);
+        }
+        
+        long prevViews = 0;
+        long prevLikes = 0;
+        int prevComments = 0;
+        for (DashboardTrendResponse.TrendPoint point : points) {
+            long cumulativeViews = safeLong(point.getViews());
+            long cumulativeLikes = safeLong(point.getLikes());
+            int cumulativeComments = safeInt(point.getComments());
+            
+            point.setViews(Math.max(0L, cumulativeViews - prevViews));
+            point.setLikes(Math.max(0L, cumulativeLikes - prevLikes));
+            point.setComments(Math.max(0, cumulativeComments - prevComments));
+            
+            prevViews = cumulativeViews;
+            prevLikes = cumulativeLikes;
+            prevComments = cumulativeComments;
         }
         
         return DashboardTrendResponse.builder()
@@ -163,7 +200,7 @@ public class DashboardService {
             .build();
     }
     
-    private Channel resolveChannel(Long userId, String channelIdentifier) {
+    public Channel resolveChannel(Long userId, String channelIdentifier) {
         Channel channel;
         if (channelIdentifier != null && !channelIdentifier.isBlank()) {
             channel = channelRepository.findByChannelId(channelIdentifier.trim())
@@ -179,8 +216,8 @@ public class DashboardService {
         return channel;
     }
     
-    private long safeLong(Long value) {
-        return value != null ? value : 0L;
+    private long safeLong(Number value) {
+        return value != null ? value.longValue() : 0L;
     }
     
     private int safeInt(Integer value) {

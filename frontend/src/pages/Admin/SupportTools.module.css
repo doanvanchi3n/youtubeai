@@ -3,35 +3,6 @@
   gap: 28px;
 }
 
-.tabs {
-  display: flex;
-  gap: 12px;
-  border-bottom: 2px solid #e2e9f3;
-}
-
-.tab {
-  padding: 12px 24px;
-  background: transparent;
-  border: none;
-  border-bottom: 3px solid transparent;
-  color: #6f7c8b;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-bottom: -2px;
-}
-
-.tab:hover {
-  color: #26E2B3;
-}
-
-.tabActive {
-  color: #26E2B3;
-  border-bottom-color: #26E2B3;
-  font-weight: 600;
-}
-
 .searchPanel {
   padding: 24px 32px;
 }
@@ -64,6 +35,17 @@
   flex: 1;
 }
 
+.searchButton {
+  border-radius: 999px;
+  border: none;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, #26E2B3 0%, #1db59c 100%);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(37, 182, 164, 0.35);
+}
+
 .searchField::placeholder {
   color: #9aa1aa;
 }
@@ -87,6 +69,36 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 28px;
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 12px;
+}
+
+.filterGroup {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: #f4f8ff;
+  color: #6f7c8b;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterBtnActive {
+  background: linear-gradient(135deg, #26E2B3 0%, #1db59c 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 182, 164, 0.3);
 }
 
 .ticketList {
@@ -177,10 +189,15 @@
   color: #26E2B3;
 }
 
+.logFilters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .logTabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
   border-bottom: 2px solid #e2e9f3;
 }
 
@@ -204,6 +221,15 @@
 .logTabActive {
   color: #26E2B3;
   border-bottom-color: #26E2B3;
+  font-weight: 600;
+}
+
+.logSourceSelect {
+  border-radius: 999px;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  padding: 6px 14px;
+  background: #f4f8ff;
+  color: #576575;
   font-weight: 600;
 }
 
@@ -233,16 +259,16 @@
   font-size: 11px;
 }
 
-.logItem:nth-child(1) .logLevel {
+.logERROR {
   color: #ff6b6b;
 }
 
-.logItem:nth-child(2) .logLevel {
-  color: #26E2B3;
+.logWARN {
+  color: #ff9800;
 }
 
-.logItem:nth-child(3) .logLevel {
-  color: #ff9800;
+.logINFO {
+  color: #26E2B3;
 }
 
 .logMessage {
@@ -255,5 +281,121 @@
 .logTime {
   color: #6f7c8b;
   text-align: right;
+}
+
+.pagination {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.pageBtn {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(197, 210, 224, 0.65);
+  background: #ffffff;
+  color: #576575;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  color: #6f7c8b;
+  font-weight: 600;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  width: 460px;
+  max-width: 90%;
+  display: grid;
+  gap: 16px;
+}
+
+.modalTitle {
+  font-weight: 600;
+  color: #1f2c35;
+}
+
+.modalDescription {
+  color: #6f7c8b;
+  line-height: 1.5;
+}
+
+.modalForm {
+  display: grid;
+  gap: 12px;
+}
+
+.modalTextarea {
+  min-height: 120px;
+  border: 1px solid rgba(197, 210, 224, 0.8);
+  border-radius: 12px;
+  padding: 12px;
+  resize: vertical;
+  font-size: 14px;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.saveBtn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #26E2B3 0%, #1db59c 100%);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 182, 164, 0.3);
+}
+
+.errorBanner {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #b83232;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.errorBanner button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emptyState,
+.loadingState {
+  padding: 24px;
+  text-align: center;
+  color: #6f7c8b;
 }
 
