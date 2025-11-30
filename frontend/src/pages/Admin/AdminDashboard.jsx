@@ -48,11 +48,6 @@ export default function AdminDashboard() {
       value: stats?.apiRequestsToday,
       icon: previewIcon,
     },
-    {
-      label: 'Tổng Bình Luận',
-      value: stats?.totalComments,
-      icon: commentIcon,
-    },
   ]), [stats])
 
   const fetchDashboard = useCallback(async ({ silent = false } = {}) => {
