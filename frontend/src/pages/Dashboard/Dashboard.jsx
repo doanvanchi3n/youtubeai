@@ -11,10 +11,10 @@ import styles from './Dashboard.module.css'
 import { dashboardService } from '../../services/dashboardService'
 
 const metricCards = [
-  { key: 'totalLikes', label: 'Total Likes', icon: likeIco },
-  { key: 'totalComments', label: 'Total Comments', icon: commentIco },
-  { key: 'totalVideos', label: 'Videos', icon: videoIco },
-  { key: 'totalViews', label: 'Views', icon: viewIco }
+  { key: 'totalLikes', comparisonKey: 'likesComparison', label: 'Total Likes', icon: likeIco },
+  { key: 'totalComments', comparisonKey: 'commentsComparison', label: 'Total Comments', icon: commentIco },
+  { key: 'totalVideos', comparisonKey: 'videosComparison', label: 'Videos', icon: videoIco },
+  { key: 'totalViews', comparisonKey: 'viewsComparison', label: 'Views', icon: viewIco }
 ]
 
 const formatCompactNumber = (value) => {
@@ -257,15 +257,55 @@ export default function Dashboard() {
       </Panel>
 
       <div className={styles.metricsRow}>
-        {metricCards.map((metric) => (
-          <div key={metric.key} className={styles.statCard}>
-            <img src={metric.icon} alt="" className={styles.statIcon} />
-            <strong className={styles.statValue}>
-              {metrics ? formatCompactNumber(metrics[metric.key]) : '--'}
-            </strong>
-            <span className={styles.statLabel}>{metric.label}</span>
-          </div>
-        ))}
+        {metricCards.map((metric) => {
+          const comparison = metrics?.[metric.comparisonKey]
+          return (
+            <div key={metric.key} className={styles.statCard}>
+              <img src={metric.icon} alt="" className={styles.statIcon} />
+              <strong className={styles.statValue}>
+                {metrics ? formatCompactNumber(metrics[metric.key]) : '--'}
+              </strong>
+              <span className={styles.statLabel}>{metric.label}</span>
+              {comparison && comparison.trend !== 'stable' && (
+                <div className={styles.comparison}>
+                  {comparison.trend === 'up' && (
+                    <span className={styles.trendUp}>
+                      ↑ +{formatCompactNumber(Math.abs(comparison.change || 0))}
+                      {comparison.changePercentage != null && (
+                        <span className={styles.percentage}>
+                          ({comparison.changePercentage > 0 ? '+' : ''}
+                          {comparison.changePercentage.toFixed(1)}%)
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {comparison.trend === 'down' && (
+                    <span className={styles.trendDown}>
+                      ↓ {formatCompactNumber(comparison.change || 0)}
+                      {comparison.changePercentage != null && (
+                        <span className={styles.percentage}>
+                          ({comparison.changePercentage.toFixed(1)}%)
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {comparison.daysSinceLastSync != null && comparison.daysSinceLastSync > 0 && (
+                    <span className={styles.syncInfo}>
+                      So với {comparison.daysSinceLastSync} ngày trước
+                    </span>
+                  )}
+                </div>
+              )}
+              {comparison && comparison.trend === 'stable' && comparison.daysSinceLastSync != null && (
+                <div className={styles.comparison}>
+                  <span className={styles.syncInfo}>
+                    So với {comparison.daysSinceLastSync} ngày trước
+                  </span>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       <Panel variant="light">

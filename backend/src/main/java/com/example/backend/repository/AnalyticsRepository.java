@@ -2,8 +2,10 @@ package com.example.backend.repository;
 
 import com.example.backend.model.Analytics;
 import com.example.backend.repository.projection.DailyCountProjection;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -15,6 +17,13 @@ public interface AnalyticsRepository extends JpaRepository<Analytics, Long> {
     Optional<Analytics> findByChannelIdAndDate(Long channelId, LocalDate date);
     List<Analytics> findByChannelIdOrderByDateAsc(Long channelId);
     List<Analytics> findByChannelIdAndDateBetweenOrderByDateAsc(Long channelId, LocalDate startDate, LocalDate endDate);
+    
+    @Query("SELECT a FROM Analytics a WHERE a.channel.id = :channelId AND a.date < :date ORDER BY a.date DESC")
+    List<Analytics> findByChannelIdAndDateBeforeOrderByDateDesc(
+        @Param("channelId") Long channelId, 
+        @Param("date") LocalDate date,
+        Pageable pageable
+    );
     
     @Query("SELECT a.date AS date, COUNT(a) AS total FROM Analytics a WHERE a.date BETWEEN :start AND :end GROUP BY a.date ORDER BY a.date ASC")
     List<DailyCountProjection> countRequestsByDateRange(LocalDate start, LocalDate end);
