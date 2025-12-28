@@ -24,5 +24,12 @@ public class DashboardMetricsResponse {
     private Long totalLikes;
     private Long totalComments;
     private Long totalVideos;
+    
+    // Thông tin so sánh với snapshot trước đó
+    private MetricsComparison viewsComparison;
+    private MetricsComparison likesComparison;
+    private MetricsComparison commentsComparison;
+    private MetricsComparison videosComparison;
+    private LocalDateTime previousSyncDate; // Ngày sync lần trước
 }
 

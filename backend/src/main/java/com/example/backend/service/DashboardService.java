@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.dto.response.DashboardMetricsResponse;
 import com.example.backend.dto.response.DashboardTrendResponse;
+import com.example.backend.dto.response.MetricsComparison;
 import com.example.backend.dto.response.SentimentSummaryResponse;
 import com.example.backend.dto.response.TopVideoResponse;
 import com.example.backend.exception.ResourceNotFoundException;
@@ -14,10 +15,13 @@ import com.example.backend.repository.ChannelRepository;
 import com.example.backend.repository.CommentRepository;
 import com.example.backend.repository.VideoRepository;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -55,6 +59,49 @@ public class DashboardService {
             totalComments = commentRepository.countByChannelId(channelDbId);
         }
         
+        // Lấy snapshot gần nhất trước ngày hiện tại để so sánh
+        Optional<Analytics> previousSnapshot = analyticsRepository
+            .findTopByChannelIdAndDateBeforeOrderByDateDesc(
+                channelDbId, 
+                LocalDate.now(),
+                PageRequest.of(0, 1)
+            )
+            .stream()
+            .findFirst();
+        
+        // Tính toán comparison cho từng metric
+        MetricsComparison viewsComparison = calculateComparison(
+            totalViews,
+            previousSnapshot.map(Analytics::getViewCount).orElse(null),
+            previousSnapshot.map(Analytics::getDate).orElse(null)
+        );
+        
+        MetricsComparison likesComparison = calculateComparison(
+            totalLikes,
+            previousSnapshot.map(Analytics::getLikeCount).orElse(null),
+            previousSnapshot.map(Analytics::getDate).orElse(null)
+        );
+        
+        MetricsComparison commentsComparison = calculateComparison(
+            (long) totalComments,
+            previousSnapshot.map(a -> safeLong(a.getCommentCount())).orElse(null),
+            previousSnapshot.map(Analytics::getDate).orElse(null)
+        );
+        
+        MetricsComparison videosComparison = calculateComparison(
+            totalVideos,
+            previousSnapshot.map(a -> safeLong(a.getVideoCount())).orElse(null),
+            previousSnapshot.map(Analytics::getDate).orElse(null)
+        );
+        
+        // Lấy ngày sync trước đó
+        LocalDateTime previousSyncDate = previousSnapshot.map(a -> {
+            if (a.getCreatedAt() != null) {
+                return a.getCreatedAt();
+            }
+            return LocalDateTime.of(a.getDate(), java.time.LocalTime.MIDNIGHT);
+        }).orElse(null);
+        
         return DashboardMetricsResponse.builder()
             .channelInternalId(channelDbId)
             .youtubeChannelId(channel.getChannelId())
@@ -67,6 +114,11 @@ public class DashboardService {
             .totalViews(totalViews)
             .totalLikes(totalLikes)
             .totalComments(totalComments)
+            .viewsComparison(viewsComparison)
+            .likesComparison(likesComparison)
+            .commentsComparison(commentsComparison)
+            .videosComparison(videosComparison)
+            .previousSyncDate(previousSyncDate)
             .build();
     }
     
@@ -226,5 +278,54 @@ public class DashboardService {
     
     private double roundRatio(double value) {
         return Math.round(value * 1000.0d) / 1000.0d;
+    }
+    
+    /**
+     * Tính toán so sánh giữa giá trị hiện tại và giá trị trước đó
+     */
+    private MetricsComparison calculateComparison(
+        Long currentValue,
+        Long previousValue,
+        LocalDate previousDate
+    ) {
+        if (previousValue == null || previousDate == null) {
+            return MetricsComparison.builder()
+                .currentValue(currentValue)
+                .previousValue(null)
+                .change(null)
+                .changePercentage(null)
+                .trend("stable")
+                .daysSinceLastSync(null)
+                .build();
+        }
+        
+        long change = currentValue - previousValue;
+        double changePercentage = 0.0;
+        if (previousValue > 0) {
+            changePercentage = ((double) change / previousValue) * 100.0;
+        } else if (currentValue > 0) {
+            // Nếu trước đó = 0 nhưng hiện tại > 0, coi như tăng 100%
+            changePercentage = 100.0;
+        }
+        
+        String trend;
+        if (change > 0) {
+            trend = "up";
+        } else if (change < 0) {
+            trend = "down";
+        } else {
+            trend = "stable";
+        }
+        
+        long daysSince = ChronoUnit.DAYS.between(previousDate, LocalDate.now());
+        
+        return MetricsComparison.builder()
+            .currentValue(currentValue)
+            .previousValue(previousValue)
+            .change(change)
+            .changePercentage(Math.round(changePercentage * 100.0) / 100.0)
+            .trend(trend)
+            .daysSinceLastSync(daysSince)
+            .build();
     }
 }
