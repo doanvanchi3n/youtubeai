@@ -1,5 +1,16 @@
 package com.example.backend.controller;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.backend.dto.response.CommentDTO;
 import com.example.backend.dto.response.SentimentStatsDTO;
 import com.example.backend.dto.response.TopVideoResponse;
@@ -7,13 +18,12 @@ import com.example.backend.exception.UnauthorizedException;
 import com.example.backend.security.JwtTokenProvider;
 import com.example.backend.service.CommentService;
 import com.example.backend.service.DashboardService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Controller xử lý các request liên quan đến comments và sentiment analysis
+ */
 @RestController
 @RequestMapping("/api/comments")
 @RequiredArgsConstructor
@@ -24,6 +34,9 @@ public class CommentController {
     private final DashboardService dashboardService;
     private final JwtTokenProvider jwtTokenProvider;
     
+    /**
+     * Lấy comments theo sentiment (positive/negative/neutral) với pagination
+     */
     @GetMapping("/sentiment")
     public ResponseEntity<Page<CommentDTO>> getCommentsBySentiment(
             @RequestHeader("Authorization") String authHeader,
@@ -40,6 +53,9 @@ public class CommentController {
         return ResponseEntity.ok(comments);
     }
     
+    /**
+     * Lấy comments theo emotion (happy/sad/angry/suggestion/love) với pagination
+     */
     @GetMapping("/emotion")
     public ResponseEntity<Page<CommentDTO>> getCommentsByEmotion(
             @RequestHeader("Authorization") String authHeader,
@@ -56,6 +72,9 @@ public class CommentController {
         return ResponseEntity.ok(comments);
     }
     
+    /**
+     * Lấy thống kê sentiment (số lượng positive/negative/neutral)
+     */
     @GetMapping("/sentiment-stats")
     public ResponseEntity<SentimentStatsDTO> getSentimentStats(
             @RequestHeader("Authorization") String authHeader,
@@ -68,6 +87,9 @@ public class CommentController {
         return ResponseEntity.ok(stats);
     }
     
+    /**
+     * Lấy dữ liệu emotion cho biểu đồ (tương tự sentiment-stats)
+     */
     @GetMapping("/emotion-chart")
     public ResponseEntity<SentimentStatsDTO> getEmotionChartData(
             @RequestHeader("Authorization") String authHeader,
@@ -81,6 +103,9 @@ public class CommentController {
         return ResponseEntity.ok(stats);
     }
     
+    /**
+     * Lấy top videos có nhiều likes nhất
+     */
     @GetMapping("/top-videos")
     public ResponseEntity<java.util.List<TopVideoResponse>> getTopVideos(
             @RequestHeader("Authorization") String authHeader,
@@ -94,6 +119,9 @@ public class CommentController {
         return ResponseEntity.ok(videos);
     }
     
+    /**
+     * Validate JWT token và extract user info
+     */
     private TokenPrincipal resolvePrincipal(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException("Thiếu thông tin xác thực");
@@ -107,6 +135,9 @@ public class CommentController {
         return new TokenPrincipal(userId, email);
     }
     
+    /**
+     * Resolve channel ID từ channelIdentifier (YouTube channelId hoặc database ID)
+     */
     private Long resolveChannelId(Long userId, String channelIdentifier) {
         try {
             return dashboardService.resolveChannel(userId, channelIdentifier).getId();

@@ -1,16 +1,23 @@
 """
-Sentiment Analysis Service
-Supports both PhoBERT (preferred) and scikit-learn (fallback)
+Sentiment Analysis Service - Phân tích cảm xúc và sentiment của comments
+Hỗ trợ 2 phương pháp: PhoBERT (ưu tiên) và scikit-learn (fallback)
 """
 import os
 import torch
 from typing import List, Dict, Optional
 from unidecode import unidecode
 from app.utils.text_processor import TextProcessor
+from app.data.sentiment_keywords import (
+    POSITIVE_KEYWORDS,
+    HAPPY_KEYWORDS,
+    SUGGESTION_KEYWORDS,
+    NEGATIVE_KEYWORDS,
+    ATTACK_KEYWORDS
+)
 
 text_processor = TextProcessor()
 
-# Try to import transformers for PhoBERT
+# Import transformers cho PhoBERT (nếu có)
 try:
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     TRANSFORMERS_AVAILABLE = True
@@ -18,7 +25,7 @@ except ImportError:
     TRANSFORMERS_AVAILABLE = False
     print("⚠ Transformers not available, will use scikit-learn fallback")
 
-# Try to import scikit-learn as fallback
+# Import scikit-learn làm fallback
 try:
     from app.models.model_loader import ModelLoader
     model_loader = ModelLoader()
@@ -28,89 +35,48 @@ except:
 
 
 class SentimentService:
-    """Service for sentiment and emotion analysis using PhoBERT or scikit-learn"""
+    """
+    Service phân tích sentiment và emotion của comments
+    - Sentiment: positive/negative/neutral
+    - Emotion: happy/sad/angry/suggestion/love
+    """
     
     def __init__(self):
+        # Chọn device (GPU nếu có, không thì CPU)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.use_phobert = False
         self.sentiment_model = None
         self.emotion_model = None
         self.tokenizer = None
         
-        # Labels
+        # Labels cho sentiment và emotion
         self.sentiment_labels = ["negative", "neutral", "positive"]
         self.emotion_labels = ["sad", "angry", "suggestion", "happy", "love"]
         
-        # Rule-based keyword sets (normalized)
-        self.positive_keywords = [
-            "hay", "qua hay", "rat hay", "tuyet", "qua tuyet",
-            "ung ho", "cam on", "cám ơn", "thank", "thanks",
-            "love", "yeu", "thich", "rat thich", "good", "great", "dang cap",
-            "thank you", "hay qua", "tiep tuc", "ung ho ong",
-            "nang suat", "năng suất", "chuan qua", "bao luon",
-            "qua that", "qua xuat sac", "qua dep", "qua tuyet voi",
-            "ung ho he", "tiep tuc nha", "hay lam", "qua ok",
-            "chia se hay", "video chat luong", "qua man nhan",
-            "❤", "💙", "💚", "💛", "💜", "💖", "💗", "💞",
-            "heart", "loveeee", "đỉnh", "đỉnh cao", "cu te", "cute",
-            "tam huyet", "tâm huyết", "xin xo", "xịn xò", "noice", "noiceee", "awesome",
-            "thanks ad", "cam on ad", "respect", "gain", "thich vl",
-            "hay vl", "hay vcl", "video chất", "hay vãi", "hay thật sự",
-            "co tam", "có tâm", "may man", "may mắn", "cuon", "cuốn",
-            "chat luong", "chất lượng", "thoa man", "thỏa mãn", "yeu thich", "yêu thích",
-            "phan tich ro", "phân tích rõ", "giai thich", "giải thích", "khi can", "kỹ càng"
-        ]
-        self.happy_keywords = [
-            "hong", "mong cho", "hao huc", "vui", "phan khoi",
-            "cho doi", "thich qua", "he he", "hihi", "hehe",
-            "hap dan", "hype", "phat nghien", "cuong qua",
-            "vui qua", "cuoi te ghe", "like manh", "dang mong",
-            "mong clip", "mong video", "hnhk", "trong ngong",
-            "hóng clip", "hóng lắm", "XD", "xD", "haha", "lol",
-            "amazing", "so good", "comeback", "yay", "tuyet voi qua",
-            "ok la", "yeu qua", "kich thich", "khong chiu noi"
-        ]
-        self.suggestion_keywords = [
-            "gop y", "co the", "nen ", "nen them", "thu ", "thu xem",
-            "toi noi that", "mong", "hy vong", "de nghi", "ban nen",
-            "xin phep", "neu duoc", "có thể", "nen co", "hay them",
-            "toi nghi", "toi de xuat", "neu ban", "ban thu",
-            "sua lai", "xem lai", "noi that", "thuc su ne", "toi noi that",
-            "recommend", "recommend", "de nghi", "nen thu", "hay thu",
-            "suggest", "propose", "should", "can try", "co the thu"
-        ]
-        self.negative_keywords = [
-            "te hai", "qua te", "qua toi", "qua tham", "qua tam te",
-            "that vong", "qua tat vong", "dang so", "chan qua",
-            "nham chan qua", "qua chan", "thua roi", "vo nghia",
-            "phi tien", "khong ra gi", "vo dung", "doi tra",
-            "thoi di", "chiu khong noi", "that vong thi", "kho chiu",
-            "tieu cuc thi", "khong on chut nao", "qua nhat", "ban qua xau",
-            "noi dung te", "te vcl", "te vcl", "bad", "worst", "fail"
-        ]
-        self.attack_keywords = [
-            "ngu", "ngo", "dai", "dien", "khung", "oc cho", "oc lon",
-            "dau bo", "nao ca vang", "kem coi", "that bai", "mat day",
-            "vo hoc", "rac roi", "rac ruoi", "vo dung", "thang", "con",
-            "xau xi", "kinh tom", "do bo", "cuot", "im di", "cot",
-            "bien di", "deo", "dam", "chui", "mat day", "do nat",
-            "coc can", "lay xe", "tao xu ly", "tao cho may biet tay",
-            "ham ho", "cho du", "dau dat", "doan duong", "tham hai"
-        ]
+        # Keyword sets cho rule-based adjustment
+        self.positive_keywords = POSITIVE_KEYWORDS
+        self.happy_keywords = HAPPY_KEYWORDS
+        self.suggestion_keywords = SUGGESTION_KEYWORDS
+        self.negative_keywords = NEGATIVE_KEYWORDS
+        self.attack_keywords = ATTACK_KEYWORDS
         
-        # Try to load PhoBERT models
+        # Load PhoBERT models nếu có
         self._load_phobert_models()
         
-        # If PhoBERT not available, use scikit-learn
+        # Fallback sang scikit-learn nếu PhoBERT không có
         if not self.use_phobert and SKLEARN_AVAILABLE:
             print("Using scikit-learn models as fallback")
     
     def _load_phobert_models(self):
-        """Load PhoBERT models if available"""
+        """
+        Load PhoBERT models từ local path
+        Nếu không có → fallback sang scikit-learn
+        """
         if not TRANSFORMERS_AVAILABLE:
             return
         
         try:
+            # Lấy model paths từ env hoặc dùng default
             sentiment_model_path = os.getenv(
                 'PHOBERT_SENTIMENT_MODEL_PATH',
                 'app/data/models/phobert_sentiment'
@@ -120,14 +86,15 @@ class SentimentService:
                 'app/data/models/phobert_emotion'
             )
             
-            # Check if model directories exist
+            # Kiểm tra models có tồn tại không
             if os.path.exists(sentiment_model_path) and os.path.exists(emotion_model_path):
                 print("Loading PhoBERT models...")
+                # Load tokenizer và models
                 self.tokenizer = AutoTokenizer.from_pretrained("vinai/phobert-base")
                 self.sentiment_model = AutoModelForSequenceClassification.from_pretrained(
                     sentiment_model_path
                 ).to(self.device)
-                self.sentiment_model.eval()
+                self.sentiment_model.eval()  # Set eval mode
                 
                 self.emotion_model = AutoModelForSequenceClassification.from_pretrained(
                     emotion_model_path
@@ -145,18 +112,16 @@ class SentimentService:
     
     def analyze(self, text: str) -> Dict:
         """
-        Analyze sentiment and emotion of a single text
+        Phân tích sentiment và emotion của một text
         
-        Args:
-            text: Input text string
-            
         Returns:
-            dict: {
+            {
                 'sentiment': 'positive|negative|neutral',
                 'emotion': 'happy|sad|angry|suggestion|love',
-                'confidence': float
+                'confidence': float (0-1)
             }
         """
+        # Text rỗng → trả về neutral
         if not text or not text.strip():
             return {
                 'sentiment': 'neutral',
@@ -164,6 +129,7 @@ class SentimentService:
                 'confidence': 0.5
             }
         
+        # Chọn model: PhoBERT (ưu tiên) → scikit-learn → default
         if self.use_phobert:
             result = self._analyze_phobert(text)
         elif SKLEARN_AVAILABLE:
@@ -176,12 +142,16 @@ class SentimentService:
                 'confidence': 0.5
             }
         
+        # Áp dụng rule-based adjustment để cải thiện kết quả
         return self._apply_rule_based_adjustment(text, result)
     
     def _analyze_phobert(self, text: str) -> Dict:
-        """Analyze using PhoBERT"""
+        """
+        Phân tích bằng PhoBERT (transformer model cho tiếng Việt)
+        - Tokenize text → Predict sentiment → Predict emotion
+        """
         try:
-            # Tokenize
+            # Tokenize text thành tokens
             inputs = self.tokenizer(
                 text,
                 return_tensors="pt",
@@ -190,20 +160,21 @@ class SentimentService:
                 max_length=256
             ).to(self.device)
             
-            # Predict sentiment
+            # Predict sentiment (positive/negative/neutral)
             with torch.no_grad():
                 sentiment_output = self.sentiment_model(**inputs)
                 sentiment_probs = torch.softmax(sentiment_output.logits, dim=-1)
                 sentiment_pred_idx = torch.argmax(sentiment_probs, dim=-1).item()
                 sentiment_confidence = sentiment_probs[0][sentiment_pred_idx].item()
             
-            # Predict emotion
+            # Predict emotion (happy/sad/angry/suggestion/love)
             with torch.no_grad():
                 emotion_output = self.emotion_model(**inputs)
                 emotion_probs = torch.softmax(emotion_output.logits, dim=-1)
                 emotion_pred_idx = torch.argmax(emotion_probs, dim=-1).item()
                 emotion_confidence = emotion_probs[0][emotion_pred_idx].item()
             
+            # Kết hợp kết quả và áp dụng rule-based adjustment
             return self._apply_rule_based_adjustment(text, {
                 'sentiment': self.sentiment_labels[sentiment_pred_idx],
                 'emotion': self.emotion_labels[emotion_pred_idx],
@@ -211,7 +182,7 @@ class SentimentService:
             })
         except Exception as e:
             print(f"Error in PhoBERT analysis: {e}")
-            # Fallback to sklearn if available
+            # Fallback sang scikit-learn nếu có
             if SKLEARN_AVAILABLE:
                 return self._analyze_sklearn(text)
             return {
@@ -221,16 +192,19 @@ class SentimentService:
             }
     
     def _analyze_sklearn(self, text: str) -> Dict:
-        """Analyze using scikit-learn (fallback)"""
+        """
+        Phân tích bằng scikit-learn (fallback khi không có PhoBERT)
+        - Preprocess text → Predict sentiment → Predict emotion
+        """
         try:
-            # Preprocess text
+            # Preprocess text (normalize, remove special chars)
             processed_text = text_processor.preprocess(text)
             
-            # Get models
+            # Lấy models từ ModelLoader
             sentiment_model = model_loader.get_sentiment_model()
             emotion_model = model_loader.get_emotion_model()
             
-            # If models not loaded, return default
+            # Nếu models chưa load → trả về default
             if sentiment_model is None or emotion_model is None:
                 return {
                     'sentiment': 'neutral',
@@ -248,7 +222,7 @@ class SentimentService:
             emotion_proba = emotion_model.predict_proba([processed_text])[0]
             emotion_confidence = max(emotion_proba)
             
-            # Overall confidence (average)
+            # Confidence = trung bình của sentiment và emotion
             confidence = (sentiment_confidence + emotion_confidence) / 2
             
             return self._apply_rule_based_adjustment(text, {
@@ -266,18 +240,14 @@ class SentimentService:
     
     def analyze_batch(self, texts: List[str]) -> List[Dict]:
         """
-        Analyze sentiment and emotion of multiple texts
-        
-        Args:
-            texts: List of text strings
-            
-        Returns:
-            list: List of analysis results
+        Phân tích batch nhiều texts cùng lúc (tối ưu performance)
+        Returns: List[Dict] với mỗi dict có 'text', 'sentiment', 'emotion', 'confidence'
         """
         if self.use_phobert:
+            # PhoBERT hỗ trợ batch processing tốt hơn
             return self._analyze_batch_phobert(texts)
         else:
-            # Use sklearn (sequential or batch if supported)
+            # scikit-learn: xử lý tuần tự từng text
             results = []
             for text in texts:
                 result = self.analyze(text)
@@ -286,10 +256,14 @@ class SentimentService:
             return results
     
     def _analyze_batch_phobert(self, texts: List[str]) -> List[Dict]:
-        """Batch processing with PhoBERT"""
+        """
+        Batch processing với PhoBERT (chia nhỏ thành batches để tránh OOM)
+        Batch size = 16 (có thể điều chỉnh theo GPU memory)
+        """
         results = []
         batch_size = 16  # Adjust based on GPU memory
         
+        # Chia texts thành các batch nhỏ
         for i in range(0, len(texts), batch_size):
             batch = texts[i:i+batch_size]
             batch_results = self._analyze_batch_internal(batch)
@@ -298,7 +272,10 @@ class SentimentService:
         return results
     
     def _analyze_batch_internal(self, texts: List[str]) -> List[Dict]:
-        """Internal batch processing with PhoBERT"""
+        """
+        Xử lý batch nội bộ với PhoBERT
+        Tokenize batch → Predict sentiment batch → Predict emotion batch
+        """
         try:
             # Tokenize batch
             inputs = self.tokenizer(
@@ -353,6 +330,10 @@ class SentimentService:
             return results
 
     def _normalize_text(self, text: str) -> str:
+        """
+        Normalize text: lowercase + remove accents (unidecode)
+        Ví dụ: "Thích" → "thich"
+        """
         if not text:
             return ""
         lowered = text.lower()
@@ -360,8 +341,8 @@ class SentimentService:
     
     def _detect_contrast_patterns(self, text: str) -> Dict[str, any]:
         """
-        Detect contrast patterns like "thích X, chứ Y éo vui"
-        Returns: {'has_contrast': bool, 'positive_part': str, 'negative_part': str}
+        Phát hiện pattern tương phản: "thích X, chứ Y éo vui"
+        → Overall sentiment là negative (phần sau quan trọng hơn)
         """
         import re
         
@@ -408,8 +389,10 @@ class SentimentService:
     
     def _detect_toxicity(self, text: str) -> Dict[str, any]:
         """
-        Detect toxic/offensive language separately from sentiment
-        Returns: {'is_toxic': bool, 'toxicity_type': str}
+        Phát hiện ngôn ngữ toxic/offensive
+        - Direct attack: "ngu", "dai", "oc cho" → toxic
+        - Slang trong context tích cực: "eo hay qua" → không toxic (emphasis)
+        - Slang trong context tiêu cực: "eo te" → toxic
         """
         normalized = self._normalize_text(text)
         
@@ -438,8 +421,14 @@ class SentimentService:
     
     def _apply_rule_based_adjustment(self, text: str, result: Dict) -> Dict:
         """
-        Improved rule-based adjustment with contrast pattern detection
-        and separate toxicity analysis
+        Áp dụng rule-based adjustment để cải thiện kết quả từ AI model
+        Logic theo thứ tự ưu tiên:
+        1. Contrast patterns (cao nhất)
+        2. Suggestions keywords
+        3. Toxicity detection
+        4. Keyword counting (positive vs negative)
+        5. Attack keywords
+        6. Negative keywords
         """
         normalized = self._normalize_text(text)
         if not normalized:

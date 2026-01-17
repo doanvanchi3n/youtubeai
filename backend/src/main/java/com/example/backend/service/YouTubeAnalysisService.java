@@ -52,14 +52,37 @@ public class YouTubeAnalysisService {
     @Value("${youtube.sync.fetch-comments.analyze:true}")
     private boolean fetchCommentsOnAnalyze;
     
+    /**
+     * Phân tích và đồng bộ kênh YouTube
+     * 
+     * LUỒNG XỬ LÝ:
+     * 1. Validate URL không rỗng
+     * 2. Parse URL → Xác định loại URL (channel ID, handle, username)
+     * 3. Gọi YouTube API → Lấy channel info (tùy theo loại URL)
+     * 4. Upsert channel vào database (tạo mới hoặc update nếu đã có)
+     * 5. Fetch videos từ kênh
+     * 6. Sync data: Lưu videos, comments (nếu cần), analytics
+     * 
+     * THAM SỐ:
+     * - userId: ID của user (để gán channel cho user)
+     * - url: YouTube channel URL (ví dụ: https://www.youtube.com/@channel hoặc https://www.youtube.com/channel/UC...)
+     * 
+     * TRẢ VỀ: AnalyzeUrlResponse (channelId, channelName, status: "success")
+     * 
+     * LƯU Ý: Method này được gọi bởi background task sau khi job được tạo
+     */
     @Transactional
     public AnalyzeUrlResponse analyzeUrl(Long userId, String url) {
+        // 1. Validate URL
         if (!StringUtils.hasText(url)) {
             throw new BadRequestException("URL không được để trống");
         }
+        
+        // 2. Lấy user từ database
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
         
+        // 3. Parse URL → Xác định loại URL (CHANNEL, CHANNEL_HANDLE, CHANNEL_USERNAME, VIDEO)
         YouTubeUrlParser.ParsedUrl parsedUrl;
         try {
             parsedUrl = YouTubeUrlParser.parse(url);
@@ -67,6 +90,7 @@ public class YouTubeAnalysisService {
             throw new BadRequestException("URL YouTube không hợp lệ");
         }
         
+        // 4. Gọi YouTube API → Lấy channel info (tùy theo loại URL)
         YouTubeChannelInfo channelInfo;
         switch (parsedUrl.getType()) {
             case CHANNEL -> channelInfo = youTubeApiService.getChannelById(parsedUrl.getId());
@@ -76,9 +100,13 @@ public class YouTubeAnalysisService {
             default -> throw new BadRequestException("Không hỗ trợ loại URL này");
         }
         
+        // 5. Upsert channel vào database (tạo mới hoặc update nếu đã có)
         Channel channel = upsertChannel(user, channelInfo);
         
+        // 6. Fetch videos từ kênh
         List<YouTubeVideoInfo> videos = fetchChannelVideos(channelInfo);
+        
+        // 7. Sync data: Lưu videos, comments (nếu fetchCommentsOnAnalyze = true), analytics
         syncChannelData(channel, channelInfo, videos, fetchCommentsOnAnalyze);
         
         log.info("Đã đồng bộ {} video cho channel {}", videos.size(), channelInfo.getChannelId());
@@ -92,10 +120,33 @@ public class YouTubeAnalysisService {
             .build();
     }
     
+    /**
+     * Upsert channel vào database (tạo mới hoặc update nếu đã có)
+     * 
+     * MỤC ĐÍCH: Đảm bảo channel được lưu với user đúng, update metadata nếu channel đã tồn tại
+     * 
+     * LUỒNG:
+     * 1. Tìm channel trong database theo channelId
+     * 2. Nếu không có → Tạo mới Channel entity
+     * 3. Nếu có → Update metadata (title, description, subscriberCount, viewCount, ...)
+     * 4. Gán user cho channel
+     * 5. Lưu vào database
+     * 
+     * THAM SỐ:
+     * - user: User entity (chủ sở hữu channel)
+     * - info: YouTubeChannelInfo (metadata từ YouTube API)
+     * 
+     * TRẢ VỀ: Channel entity đã được lưu
+     */
     private Channel upsertChannel(User user, YouTubeChannelInfo info) {
+        // Tìm channel trong database theo channelId (nếu đã có)
         Channel channel = channelRepository.findByChannelId(info.getChannelId())
-            .orElseGet(Channel::new);
+            .orElseGet(Channel::new); // Tạo mới nếu chưa có
+        
+        // Gán user cho channel
         channel.setUser(user);
+        
+        // Update metadata từ YouTube API
         channel.setChannelId(info.getChannelId());
         channel.setChannelName(info.getTitle());
         channel.setDescription(info.getDescription());

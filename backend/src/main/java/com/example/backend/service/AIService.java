@@ -1,7 +1,11 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.request.AISuggestionRequest;
+import com.example.backend.dto.request.AIChatRequest;
 import com.example.backend.dto.response.AISuggestionResponse;
+import com.example.backend.dto.response.AIChatResponse;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import com.example.backend.dto.youtube.YouTubeVideoInfo;
 import com.example.backend.exception.BadRequestException;
 import com.example.backend.exception.ResourceNotFoundException;
@@ -36,57 +40,115 @@ public class AIService {
     @Value("${ai.module.url:http://localhost:5000}")
     private String aiModuleUrl;
     
+    /**
+     * Tạo AI suggestions (titles, description, hashtags, topics, trends)
+     * 
+     * LUỒNG XỬ LÝ:
+     * 1. Sanitize keywords (loại bỏ duplicate, giới hạn 25 keywords)
+     * 2. Validate input (phải có keywords, description, hoặc channel)
+     * 3. Resolve channel nếu useChannelContext = true
+     * 4. Load video context từ cache hoặc YouTube API
+     * 5. Build payload cho AI Module
+     * 6. Gọi AI Module endpoint /api/generate-suggestions
+     * 7. Transform response và trả về
+     * 
+     * THAM SỐ:
+     * - userId: ID của user (để resolve channel)
+     * - request: AISuggestionRequest (keywords, description, useChannelContext, ...)
+     * 
+     * TRẢ VỀ: AISuggestionResponse (titles, description, hashtags, topics, trends, context)
+     */
     public AISuggestionResponse generateSuggestions(Long userId, AISuggestionRequest request) {
+        // 1. Sanitize keywords: loại bỏ duplicate, trim, giới hạn 25 keywords
         List<String> keywords = sanitizeKeywords(Optional.ofNullable(request.getKeywords()).orElse(List.of()));
+        
+        // 2. Process description: trim và validate
         String description = Optional.ofNullable(request.getDescription())
             .map(String::trim)
             .filter(StringUtils::hasText)
             .orElse(null);
         
+        // 3. Resolve channel nếu user muốn dùng channel context
         Channel channel = resolveChannelIfNeeded(userId, request);
+        
+        // 4. Validate: phải có ít nhất keywords, description, hoặc channel
         if (keywords.isEmpty() && description == null && channel == null) {
             throw new BadRequestException("Vui lòng nhập từ khóa, mô tả hoặc bật chế độ dùng dữ liệu kênh YouTube.");
         }
         
+        // 5. Load video context từ cache hoặc YouTube API (để AI có context về video của kênh)
         List<YouTubeVideoInfo> videoContext = channel != null
             ? loadVideoContext(channel, request)
             : Collections.emptyList();
         
+        // 6. Build payload cho AI Module
         Map<String, Object> payload = buildPayload(request, keywords, description, channel, videoContext);
+        
+        // 7. Gọi AI Module (Python Flask) để generate content
         AiModuleSuggestionResponse aiResponse = callAiModule(payload);
         
+        // 8. Transform response từ AI Module sang AISuggestionResponse
         return buildResponse(aiResponse, keywords, channel, videoContext);
     }
     
+    /**
+     * Resolve channel nếu user muốn dùng channel context
+     * 
+     * MỤC ĐÍCH: Lấy channel từ database để cung cấp context cho AI
+     * 
+     * ĐIỀU KIỆN: useChannelContext = true HOẶC channelId được cung cấp
+     * 
+     * TRẢ VỀ: Channel entity hoặc null nếu không cần channel
+     */
     private Channel resolveChannelIfNeeded(Long userId, AISuggestionRequest request) {
         boolean needChannel = request.isUseChannelContext() || StringUtils.hasText(request.getChannelId());
         if (!needChannel) {
             return null;
         }
         try {
+            // Lấy channel từ database (phải thuộc về user này)
             return dashboardService.resolveChannel(userId, request.getChannelId());
         } catch (ResourceNotFoundException ex) {
             throw new BadRequestException("Không tìm thấy kênh YouTube. Vui lòng đồng bộ kênh trước.");
         }
     }
     
+    /**
+     * Load video context từ cache hoặc YouTube API
+     * 
+     * MỤC ĐÍCH: Cung cấp context về video của kênh để AI tạo suggestions phù hợp hơn
+     * 
+     * LUỒNG:
+     * 1. Thử lấy từ cache trước (nhanh hơn)
+     * 2. Nếu cache không có hoặc user yêu cầu fetch mới → Gọi YouTube API
+     * 3. Giới hạn số lượng video (tối đa 15 videos)
+     * 
+     * TRẢ VỀ: List<YouTubeVideoInfo> (tối đa 15 videos)
+     */
     private List<YouTubeVideoInfo> loadVideoContext(Channel channel, AISuggestionRequest request) {
         int limit = clampSampleLimit(request.getSampleVideoLimit());
         List<YouTubeVideoInfo> videos = new ArrayList<>();
+        
+        // 1. Thử lấy từ cache trước (nhanh hơn, không tốn YouTube API quota)
         List<YouTubeVideoInfo> cached = youTubeAnalysisService.getCachedTopVideos(channel);
         if (cached != null) {
             videos.addAll(cached.stream().limit(limit).toList());
         }
+        
+        // 2. Nếu cache không có hoặc user yêu cầu fetch mới → Gọi YouTube API
         boolean needsYoutubeFetch = request.isFetchYouTubeContext() || videos.isEmpty();
         if (needsYoutubeFetch) {
             try {
+                // Gọi YouTube API để lấy video mới nhất
                 List<YouTubeVideoInfo> remote = youTubeApiService.getVideosByChannel(channel.getChannelId(), limit);
                 videos.clear();
                 videos.addAll(remote.stream().limit(limit).toList());
             } catch (Exception ex) {
                 log.warn("Không thể tải dữ liệu video mới từ YouTube API: {}", ex.getMessage());
+                // Nếu YouTube API fail, vẫn dùng cache nếu có
             }
         }
+        
         return videos.stream().limit(limit).collect(Collectors.toList());
     }
     
@@ -131,6 +193,59 @@ public class AIService {
         map.put("comments", info.getCommentCount());
         map.put("publishedAt", info.getPublishedAt() != null ? info.getPublishedAt().toString() : null);
         return map;
+    }
+    
+    /**
+     * Chat với AI chatbot
+     * 
+     * MỤC ĐÍCH: Proxy request đến AI Module (Python Flask) để chat với AI
+     * 
+     * LUỒNG:
+     * 1. Build endpoint URL cho AI Module
+     * 2. Gọi POST /api/chat với AIChatRequest (messages, context)
+     * 3. AI Module sẽ:
+     *    - Build conversation với system prompt
+     *    - Gọi Google Gemini API (hoặc HuggingFace fallback)
+     *    - Handle tool calling nếu cần
+     *    - Trả về reply
+     * 4. Handle errors (timeout, connection error, server error)
+     * 
+     * THAM SỐ:
+     * - userId: ID của user (không dùng trong AI Module, chỉ để log)
+     * - request: AIChatRequest (messages: conversation history, context: keywords/description)
+     * 
+     * TRẢ VỀ: AIChatResponse (reply: text response từ AI)
+     */
+    public AIChatResponse chat(Long userId, AIChatRequest request) {
+        // Build endpoint URL cho AI Module
+        String endpoint = aiModuleUrl.endsWith("/")
+            ? aiModuleUrl + "api/chat"
+            : aiModuleUrl + "/api/chat";
+        
+        try {
+            // Gọi AI Module endpoint
+            AIChatResponse response = restTemplate.postForObject(
+                endpoint, request, AIChatResponse.class);
+            
+            // Validate response
+            if (response == null || response.getReply() == null) {
+                throw new BadRequestException("AI Chat không trả về dữ liệu.");
+            }
+            
+            return response;
+        } catch (ResourceAccessException ex) {
+            // Timeout hoặc connection error (AI Module không chạy hoặc không kết nối được)
+            log.error("Timeout hoặc không kết nối được AI Module: {}", ex.getMessage());
+            throw new BadRequestException("AI Module không phản hồi. Vui lòng thử lại sau.");
+        } catch (HttpServerErrorException ex) {
+            // 5xx errors (AI Module lỗi server)
+            log.error("AI Module lỗi server: {}", ex.getMessage());
+            throw new BadRequestException("AI Module đang gặp sự cố. Vui lòng thử lại sau.");
+        } catch (RestClientException ex) {
+            // Các lỗi khác
+            log.error("Lỗi khi gọi AI Chat Module: {}", ex.getMessage(), ex);
+            throw new BadRequestException("Không thể kết nối tới AI Chat. Vui lòng thử lại sau.");
+        }
     }
     
     private AiModuleSuggestionResponse callAiModule(Map<String, Object> payload) {

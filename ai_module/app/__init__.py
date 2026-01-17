@@ -29,6 +29,7 @@ def create_app(config_name='development'):
     from app.api.topics import bp as topics_bp
     from app.api.content import bp as content_bp
     from app.api.analytics import bp as analytics_bp
+    from app.api.chat import bp as chat_bp
     
     app.register_blueprint(routes_bp)
     app.register_blueprint(sentiment_bp, url_prefix='/api')
@@ -36,10 +37,11 @@ def create_app(config_name='development'):
     app.register_blueprint(topics_bp, url_prefix='/api')
     app.register_blueprint(content_bp, url_prefix='/api')
     app.register_blueprint(analytics_bp, url_prefix='/api')
+    app.register_blueprint(chat_bp, url_prefix='/api')
     
     print("✓ AI Suggestion service ready (ContentService)")
-    print("  - Endpoints: /api/generate-content, /api/generate-suggestions")
-    print("  - Tech: TF-IDF, Google Trends, YouTube autocomplete, HuggingFace (optional)")
+    print("  - Endpoints: /api/generate-content, /api/generate-suggestions, /api/chat")
+    print("  - Tech: TF-IDF, Google Trends, YouTube autocomplete, HuggingFace Chat Models")
     
     return app
 

@@ -60,14 +60,15 @@ public class DashboardService {
         }
         
         // Lấy snapshot gần nhất trước ngày hiện tại để so sánh
-        Optional<Analytics> previousSnapshot = analyticsRepository
+        List<Analytics> previousSnapshots = analyticsRepository
             .findTopByChannelIdAndDateBeforeOrderByDateDesc(
                 channelDbId, 
                 LocalDate.now(),
                 PageRequest.of(0, 1)
-            )
-            .stream()
-            .findFirst();
+            );
+        Optional<Analytics> previousSnapshot = previousSnapshots.isEmpty() 
+            ? Optional.empty() 
+            : Optional.of(previousSnapshots.get(0));
         
         // Tính toán comparison cho từng metric
         MetricsComparison viewsComparison = calculateComparison(

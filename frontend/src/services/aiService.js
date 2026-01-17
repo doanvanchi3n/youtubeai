@@ -6,6 +6,13 @@ export const aiService = {
       method: 'POST',
       body: payload
     })
+  },
+
+  chat(messages, context) {
+    return authFetch('/ai/chat', {
+      method: 'POST',
+      body: { messages, context }
+    })
   }
 }
 

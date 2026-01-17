@@ -1,26 +1,3 @@
-# Hướng Dẫn Setup Đăng Nhập & Đăng Ký
-
-## ✅ Đã Hoàn Thành
-
-### Backend:
-- ✅ User model với role, locked, googleId
-- ✅ RegisterRequest, GoogleAuthRequest DTOs
-- ✅ AuthResponse DTO
-- ✅ JwtTokenProvider
-- ✅ AuthService (register, login, googleAuth)
-- ✅ AuthController với các endpoints
-- ✅ SecurityConfig với CORS
-- ✅ UserRepository với findByGoogleId
-
-### Frontend:
-- ✅ authService.js với API calls
-- ✅ AuthContext với state management
-- ✅ Login component với validation
-- ✅ ProtectedRoute component
-- ✅ App.jsx với AuthProvider và ProtectedRoute
-- ✅ AppLayout và AdminLayout với logout
-
----
 
 ## 🔧 Cấu Hình Cần Thiết
 

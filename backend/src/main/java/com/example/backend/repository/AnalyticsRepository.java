@@ -20,7 +20,7 @@ public interface AnalyticsRepository extends JpaRepository<Analytics, Long> {
     List<Analytics> findByChannelIdAndDateBetweenOrderByDateAsc(Long channelId, LocalDate startDate, LocalDate endDate);
     
     @Query("SELECT a FROM Analytics a WHERE a.channel.id = :channelId AND a.date < :date ORDER BY a.date DESC")
-    Optional<Analytics> findTopByChannelIdAndDateBeforeOrderByDateDesc(
+    List<Analytics> findTopByChannelIdAndDateBeforeOrderByDateDesc(
         @Param("channelId") Long channelId, 
         @Param("date") LocalDate date,
         Pageable pageable

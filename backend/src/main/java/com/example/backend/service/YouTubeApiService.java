@@ -1,23 +1,5 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.youtube.YouTubeChannelInfo;
-import com.example.backend.dto.youtube.YouTubeCommentInfo;
-import com.example.backend.dto.youtube.YouTubeVideoInfo;
-import com.example.backend.exception.ResourceNotFoundException;
-import com.example.backend.exception.YouTubeApiException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
-
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -29,6 +11,29 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.example.backend.dto.youtube.YouTubeChannelInfo;
+import com.example.backend.dto.youtube.YouTubeCommentInfo;
+import com.example.backend.dto.youtube.YouTubeVideoInfo;
+import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.exception.YouTubeApiException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Service gọi YouTube Data API v3 để lấy channel, video, comments
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -46,6 +51,9 @@ public class YouTubeApiService {
     @Value("${youtube.api.quota-buffer:100}")
     private int quotaBuffer;
     
+    /**
+     * Lấy thông tin kênh theo channel ID
+     */
     public YouTubeChannelInfo getChannelById(String channelId) {
         JsonNode root = executeGet("/channels", Map.of(
             "part", "snippet,statistics,contentDetails",
@@ -58,6 +66,9 @@ public class YouTubeApiService {
         return parseChannel(items.get(0));
     }
     
+    /**
+     * Lấy thông tin kênh theo handle (@channel)
+     */
     public YouTubeChannelInfo getChannelByHandle(String handle) {
         JsonNode root = executeGet("/channels", Map.of(
             "part", "snippet,statistics,contentDetails",
@@ -70,6 +81,9 @@ public class YouTubeApiService {
         return parseChannel(items.get(0));
     }
     
+    /**
+     * Lấy thông tin kênh theo username (deprecated, YouTube không còn hỗ trợ)
+     */
     public YouTubeChannelInfo getChannelByUsername(String username) {
         JsonNode root = executeGet("/channels", Map.of(
             "part", "snippet,statistics,contentDetails",
@@ -82,6 +96,9 @@ public class YouTubeApiService {
         return parseChannel(items.get(0));
     }
     
+    /**
+     * Lấy thông tin video theo video ID
+     */
     public YouTubeVideoInfo getVideoById(String videoId) {
         List<YouTubeVideoInfo> videos = getVideosByIds(Collections.singletonList(videoId));
         if (videos.isEmpty()) {
@@ -90,6 +107,11 @@ public class YouTubeApiService {
         return videos.get(0);
     }
     
+    /**
+     * Lấy danh sách video của kênh (pagination với search API)
+     * @param channelId ID kênh
+     * @param maxResults Số lượng video tối đa
+     */
     public List<YouTubeVideoInfo> getVideosByChannel(String channelId, int maxResults) {
         int remaining = Math.max(1, maxResults);
         String pageToken = null;
@@ -130,6 +152,11 @@ public class YouTubeApiService {
         return getVideosByIds(videoIds);
     }
     
+    /**
+     * Lấy tất cả video từ uploads playlist (nhanh hơn search API)
+     * @param uploadsPlaylistId ID của uploads playlist
+     * @param maxVideos Số lượng video tối đa (0 = tất cả)
+     */
     public List<YouTubeVideoInfo> getAllVideosFromUploads(String uploadsPlaylistId, int maxVideos) {
         if (!StringUtils.hasText(uploadsPlaylistId)) {
             return List.of();
@@ -169,6 +196,9 @@ public class YouTubeApiService {
         return getVideosByIds(videoIds);
     }
     
+    /**
+     * Lấy thông tin video theo danh sách IDs (batch, tối đa 50 IDs mỗi request)
+     */
     private List<YouTubeVideoInfo> getVideosByIds(List<String> ids) {
         List<YouTubeVideoInfo> results = new ArrayList<>();
         int start = 0;
@@ -188,6 +218,10 @@ public class YouTubeApiService {
         return results;
     }
     
+    /**
+     * Gọi YouTube API GET request và parse JSON response
+     * Handle errors: comments disabled, quota exceeded, etc.
+     */
     private JsonNode executeGet(String path, Map<String, String> params) {
         if (!StringUtils.hasText(apiKey)) {
             throw new YouTubeApiException("Chưa cấu hình youtube.api.key trong application.properties");
@@ -216,6 +250,9 @@ public class YouTubeApiService {
         }
     }
     
+    /**
+     * Kiểm tra lỗi "comments disabled" từ API response
+     */
     private boolean isCommentsDisabledError(String responseBody) {
         if (!StringUtils.hasText(responseBody)) {
             return false;
@@ -235,6 +272,9 @@ public class YouTubeApiService {
         return responseBody.contains("commentsDisabled");
     }
     
+    /**
+     * Parse JSON response thành YouTubeChannelInfo
+     */
     private YouTubeChannelInfo parseChannel(JsonNode node) {
         JsonNode snippet = node.path("snippet");
         JsonNode statistics = node.path("statistics");
@@ -254,6 +294,9 @@ public class YouTubeApiService {
             .build();
     }
     
+    /**
+     * Parse JSON response thành YouTubeVideoInfo
+     */
     private YouTubeVideoInfo parseVideo(JsonNode node) {
         JsonNode snippet = node.path("snippet");
         JsonNode statistics = node.path("statistics");
@@ -308,6 +351,11 @@ public class YouTubeApiService {
             .build();
     }
     
+    /**
+     * Lấy comments của video (pagination, bao gồm replies)
+     * @param videoId ID video
+     * @param maxComments Số lượng comments tối đa (0 = tất cả)
+     */
     public List<YouTubeCommentInfo> getComments(String videoId, int maxComments) {
         if (maxComments == 0) {
             return List.of();
@@ -357,6 +405,9 @@ public class YouTubeApiService {
         return comments;
     }
     
+    /**
+     * Parse JSON response thành YouTubeCommentInfo
+     */
     private YouTubeCommentInfo parseComment(String videoId, String commentId, String parentCommentId, JsonNode snippet) {
         LocalDateTime publishedAt = null;
         try {
@@ -378,6 +429,9 @@ public class YouTubeApiService {
             .build();
     }
     
+    /**
+     * Kiểm tra quota còn đủ không (placeholder, chưa implement tracking)
+     */
     public boolean hasQuotaBuffer(long estimatedCost) {
         // Placeholder logic for future enhancement when tracking usage
         return estimatedCost <= quotaBuffer;

@@ -139,7 +139,7 @@ export default function SystemSettings() {
           <form className={styles.settingsForm} onSubmit={handleSubmit}>
             <div className={styles.settingsList}>
               {keyField('youtube', 'YouTube API Key', 'youtubeApiKey')}
-              {keyField('openai', 'OpenAI API Key', 'openAiApiKey')}
+              {keyField('Gemini', 'Gemini API Key', 'GeminiAiApiKey')}
             </div>
 
             <div className={styles.sectionTitle}>
