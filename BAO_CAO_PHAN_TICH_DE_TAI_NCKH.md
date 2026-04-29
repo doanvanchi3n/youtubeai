@@ -1,4 +1,5 @@
 # BÁO CÁO PHÂN TÍCH, PHẢN BIỆN VÀ ĐỀ XUẤT HƯỚNG NGHIÊN CỨU KHOA HỌC
+
 ## Hệ thống YouTube AI Analytics – Phân tích cảm xúc & hành vi bình luận
 
 **Phiên bản:** 1.0  
@@ -24,43 +25,50 @@ Hệ thống hướng tới **người quản lý kênh YouTube** (creator/doanh
 
 ## 1.2. Các chức năng hiện có
 
-| # | Chức năng | Mô tả ngắn |
-|---|-----------|------------|
-| 1 | Đồng bộ kênh YouTube | Nhập URL kênh → lấy channel, videos, comments từ YouTube API → lưu DB |
-| 2 | Phân tích Sentiment & Emotion | Phân loại bình luận: sentiment (positive/negative/neutral), emotion (happy/sad/angry/suggestion/love) |
-| 3 | Gợi ý nội dung AI | Tạo tiêu đề, mô tả SEO, hashtags, topics, trends (HuggingFace/LLM) |
-| 4 | AI Chatbot | Chat trợ lý nội dung YouTube (Gemini ưu tiên, HuggingFace dự phòng) |
-| 5 | Dashboard & Analytics | Metrics, trends, top videos, sentiment tổng quan |
-| 6 | Community Insights | Topics, keywords, phân bố sentiment/emotion |
-| 7 | Authentication | Đăng ký/đăng nhập, JWT, Google OAuth |
-| 8 | Scheduled Jobs & Batch | AnalyzeJobWorker, ScheduledAnalysisService (batch sentiment), DataSyncService |
+
+| #   | Chức năng                     | Mô tả ngắn                                                                                            |
+| --- | ----------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 1   | Đồng bộ kênh YouTube          | Nhập URL kênh → lấy channel, videos, comments từ YouTube API → lưu DB                                 |
+| 2   | Phân tích Sentiment & Emotion | Phân loại bình luận: sentiment (positive/negative/neutral), emotion (happy/sad/angry/suggestion/love) |
+| 3   | Gợi ý nội dung AI             | Tạo tiêu đề, mô tả SEO, hashtags, topics, trends (HuggingFace/LLM)                                    |
+| 4   | AI Chatbot                    | Chat trợ lý nội dung YouTube (Gemini ưu tiên, HuggingFace dự phòng)                                   |
+| 5   | Dashboard & Analytics         | Metrics, trends, top videos, sentiment tổng quan                                                      |
+| 6   | Community Insights            | Topics, keywords, phân bố sentiment/emotion                                                           |
+| 7   | Authentication                | Đăng ký/đăng nhập, JWT, Google OAuth                                                                  |
+| 8   | Scheduled Jobs & Batch        | AnalyzeJobWorker, ScheduledAnalysisService (batch sentiment), DataSyncService                         |
+
 
 ---
 
 ## 1.3. Phân loại chức năng theo nhóm
 
 ### Thu thập dữ liệu
+
 - **Đồng bộ kênh:** Parse URL (channel/video) → YouTube API (channels, playlistItems, videos, commentThreads) → lưu channel, videos, comments.
 - **Scheduled sync:** DataSyncService đồng bộ kênh theo cron (mặc định 3:30 AM).
 - **Nguồn:** Chỉ YouTube Data API v3; không có crawl/stream ngoài API.
 
 ### Xử lý dữ liệu
+
 - **Lưu/chuẩn hóa:** Backend (Spring Boot) lưu vào MySQL (channels, videos, comments, analytics, video_topics, keywords).
 - **Batch job:** AnalyzeJobWorker xử lý job phân tích URL; ScheduledAnalysisService lấy comment chưa phân tích (50/batch) gửi sang AI Module.
 - **Tiền xử lý text:** TextProcessor (lowercase, remove URL/email, normalize space); chưa có chuẩn hóa tiếng Việt, slang, emoji chuyên sâu.
 
 ### Phân tích AI (emotion / sentiment / behavior)
+
 - **Sentiment:** 3 lớp (positive, negative, neutral). PhoBERT fine-tune (ưu tiên) hoặc scikit-learn TF-IDF + classifier (fallback).
 - **Emotion:** 5 lớp (happy, sad, angry, suggestion, love). Cùng kiến trúc PhoBERT/sklearn.
 - **Rule-based điều chỉnh:** contrast (“nhưng/chứ” + tiêu cực), toxicity, keyword counting (sentiment_keywords.py) để override/boost kết quả model.
 - **Batch inference:** 50 comment/batch (Backend) → AI Module; PhoBERT batch 16 (cấu hình).
 
 ### Lưu trữ
+
 - **MySQL:** 9 bảng chính (users, user_preferences, channels, videos, comments, analytics, video_topics, video_topic_mapping, keywords) + 3 view.
 - **Comments:** sentiment, emotion, sentiment_score, is_analyzed, analyzed_at.
 - Không có Redis/cache, không có NoSQL hay data lake.
 
 ### Giao diện & thông báo
+
 - **Frontend:** React + Vite; trang Dashboard, Video Analytics, Comment Sentiment, Community Insights, AI Suggestion (form + chatbot), Settings.
 - **API:** REST; JWT cho auth; không có WebSocket/SSE cho real-time; trạng thái job phân tích qua polling (GET analyze job).
 
@@ -73,6 +81,7 @@ Hệ thống hướng tới **người quản lý kênh YouTube** (creator/doanh
 ### a) Dữ liệu load chậm khi hệ thống chạy
 
 **Nguyên nhân kỹ thuật:**
+
 - **Đồng bộ đồng bộ:** Toàn bộ channel (videos + comments) xử lý trong một request; YouTube API gọi tuần tự (channel → playlist → videos → comments từng video) → thời gian phụ thuộc số video và comment.
 - **Không cache:** Dashboard/trends/sentiment đọc trực tiếp từ MySQL, không cache (Redis/Memcached) → mỗi lần load lại query nặng (aggregate views, JOIN).
 - **Polling job:** Frontend poll job status (analyze URL) với interval cố định → cảm giác “chờ lâu” dù backend đã tách async.
@@ -87,6 +96,7 @@ Hệ thống hướng tới **người quản lý kênh YouTube** (creator/doanh
 ### b) Khối lượng dữ liệu lớn khi phân tích hành vi / cảm xúc
 
 **Nguyên nhân kỹ thuật:**
+
 - **Batch cố định:** 50 comment/lần (ScheduledAnalysisService); 16 comment/batch PhoBERT. Hàng chục nghìn comment → hàng nghìn batch → thời gian chạy dài, queue tích lũy.
 - **Không giới hạn theo thời gian:** Lấy “unanalyzed” không ưu tiên theo video mới nhất hoặc thời gian → có thể xử lý comment cũ trước.
 - **Single AI instance:** Một process Flask; không horizontal scaling → throughput bị giới hạn bởi 1 máy.
@@ -101,6 +111,7 @@ Hệ thống hướng tới **người quản lý kênh YouTube** (creator/doanh
 ### c) Nguy cơ MySQL bị quá tải / đầy dữ liệu
 
 **Nguyên nhân kỹ thuật:**
+
 - **Một schema cho mọi thứ:** Dữ liệu thô (comment text, metadata) và dữ liệu đã phân tích (sentiment, emotion) cùng bảng `comments` → bảng phình khi số comment lớn.
 - **Không partition theo thời gian:** Bảng `comments`, `analytics` không partition theo `date`/`published_at` → query full scan khi filter theo kênh + thời gian.
 - **Index:** Có idx (video_id, sentiment, emotion, is_analyzed) nhưng thiếu composite phù hợp cho query “theo kênh + ngày + sentiment”.
@@ -184,7 +195,7 @@ Hệ thống hướng tới **người quản lý kênh YouTube** (creator/doanh
 ### b) Xử lý tiếng lóng, viết tắt
 
 - **Bước 1:** Slang dictionary replace (giữ lại form chuẩn để model học).
-- **Bước 2:** Emoji → token đặc biệt hoặc từ (vd: ❤️→ “_positive_”, 😢→ “_sad_”) để model/rule dùng.
+- **Bước 2:** Emoji → token đặc biệt hoặc từ (vd: ❤️→ “*positive*”, 😢→ “*sad*”) để model/rule dùng.
 - **Bước 3:** Normalize lặp ký tự (“!!!!” → “!”) để giảm noise.
 
 ### c) Loại bỏ nhiễu
@@ -215,25 +226,29 @@ Pipeline này có thể viết thành module `VietnameseCommentPreprocessor` và
 
 ## 4.1. Đánh giá môi trường nội dung con xem
 
-| Thành phần | Mô tả |
-|------------|--------|
-| **Mục tiêu** | Giúp phụ huynh biết **mức độ tích cực/tiêu cực của cộng đồng** xung quanh nội dung con xem. Phụ huynh đánh dấu các kênh hoặc video mà con thường xem; hệ thống phân tích sentiment/emotion của bình luận trên những video đó. |
-| **Đầu vào** | (1) Danh sách kênh hoặc video mà phụ huynh cho là “con đang xem” (nhập URL hoặc chọn từ lịch sử đã đồng bộ); (2) Khoảng thời gian; (3) Dữ liệu comment đã phân tích trên các video đó. |
-| **Đầu ra** | Chỉ số “môi trường”: ví dụ “Kênh/video con xem có khoảng X% bình luận tích cực, Y% tiêu cực”; “Cộng đồng xung quanh nội dung này: phần lớn vui vẻ / góp ý / có tỷ lệ công kích cao”; có thể kèm biểu đồ pie/bar. |
-| **Giá trị thực tiễn** | Phụ huynh nhận diện con đang tiếp xúc với cộng đồng lành mạnh hay nhiều bình luận tiêu cực/độc hại; làm cơ sở để trò chuyện hoặc giới hạn nội dung. |
-| **Ý nghĩa nghiên cứu** | Ứng dụng sentiment aggregation theo “content consumed” (nội dung được tiêu thụ); có thể nghiên cứu tương quan giữa loại nội dung và “độ lành mạnh” cộng đồng bình luận. |
+
+| Thành phần             | Mô tả                                                                                                                                                                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mục tiêu**           | Giúp phụ huynh biết **mức độ tích cực/tiêu cực của cộng đồng** xung quanh nội dung con xem. Phụ huynh đánh dấu các kênh hoặc video mà con thường xem; hệ thống phân tích sentiment/emotion của bình luận trên những video đó. |
+| **Đầu vào**            | (1) Danh sách kênh hoặc video mà phụ huynh cho là “con đang xem” (nhập URL hoặc chọn từ lịch sử đã đồng bộ); (2) Khoảng thời gian; (3) Dữ liệu comment đã phân tích trên các video đó.                                        |
+| **Đầu ra**             | Chỉ số “môi trường”: ví dụ “Kênh/video con xem có khoảng X% bình luận tích cực, Y% tiêu cực”; “Cộng đồng xung quanh nội dung này: phần lớn vui vẻ / góp ý / có tỷ lệ công kích cao”; có thể kèm biểu đồ pie/bar.              |
+| **Giá trị thực tiễn**  | Phụ huynh nhận diện con đang tiếp xúc với cộng đồng lành mạnh hay nhiều bình luận tiêu cực/độc hại; làm cơ sở để trò chuyện hoặc giới hạn nội dung.                                                                           |
+| **Ý nghĩa nghiên cứu** | Ứng dụng sentiment aggregation theo “content consumed” (nội dung được tiêu thụ); có thể nghiên cứu tương quan giữa loại nội dung và “độ lành mạnh” cộng đồng bình luận.                                                       |
+
 
 ---
 
 ## 4.2. Theo dõi xu hướng cảm xúc từ bình luận con viết (khi xem)
 
-| Thành phần | Mô tả |
-|------------|--------|
-| **Mục tiêu** | Theo dõi **cảm xúc thể hiện qua chính bình luận con để lại** khi xem video (comment con viết trên video của người khác). Phụ huynh thấy xu hướng: con đang tích cực, trung tính hay tiêu cực khi tương tác. |
-| **Đầu vào** | (1) Liên kết tài khoản “con” (vd tài khoản YouTube của con qua OAuth hoặc danh sách comment do phụ huynh/con cung cấp); (2) Khoảng thời gian (tuần/tháng); (3) Dữ liệu comment do con viết đã có sentiment/emotion và timestamp. |
-| **Đầu ra** | Biểu đồ đường/bar: tỷ lệ positive/negative/neutral theo tuần từ **bình luận con viết**; tỷ lệ emotion (happy/sad/angry/…) theo tuần; có thể kèm số lượng comment. |
-| **Giá trị thực tiễn** | Nhận diện giai đoạn con thể hiện nhiều cảm xúc tiêu cực hoặc buồn/giận qua bình luận; mở ra đối thoại kịp thời. |
-| **Ý nghĩa nghiên cứu** | Sentiment time series từ “user-generated content” của chính người xem; có thể đánh giá tương quan với sự kiện (học tập, bạn bè) nếu có metadata. |
+
+| Thành phần             | Mô tả                                                                                                                                                                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mục tiêu**           | Theo dõi **cảm xúc thể hiện qua chính bình luận con để lại** khi xem video (comment con viết trên video của người khác). Phụ huynh thấy xu hướng: con đang tích cực, trung tính hay tiêu cực khi tương tác.                      |
+| **Đầu vào**            | (1) Liên kết tài khoản “con” (vd tài khoản YouTube của con qua OAuth hoặc danh sách comment do phụ huynh/con cung cấp); (2) Khoảng thời gian (tuần/tháng); (3) Dữ liệu comment do con viết đã có sentiment/emotion và timestamp. |
+| **Đầu ra**             | Biểu đồ đường/bar: tỷ lệ positive/negative/neutral theo tuần từ **bình luận con viết**; tỷ lệ emotion (happy/sad/angry/…) theo tuần; có thể kèm số lượng comment.                                                                |
+| **Giá trị thực tiễn**  | Nhận diện giai đoạn con thể hiện nhiều cảm xúc tiêu cực hoặc buồn/giận qua bình luận; mở ra đối thoại kịp thời.                                                                                                                  |
+| **Ý nghĩa nghiên cứu** | Sentiment time series từ “user-generated content” của chính người xem; có thể đánh giá tương quan với sự kiện (học tập, bạn bè) nếu có metadata.                                                                                 |
+
 
 **Lưu ý kỹ thuật:** Việc lấy bình luận do “con” viết phụ thuộc YouTube API và quyền truy cập (vd OAuth của tài khoản con, hoặc parent nhập thủ công danh sách). Cần làm rõ consent và quyền riêng tư.
 
@@ -241,37 +256,43 @@ Pipeline này có thể viết thành module `VietnameseCommentPreprocessor` và
 
 ## 4.3. Cảnh báo sớm: môi trường độc hại hoặc bình luận con có dấu hiệu bất thường
 
-| Thành phần | Mô tả |
-|------------|--------|
-| **Mục tiêu** | Cảnh báo trong hai trường hợp: (1) **Môi trường:** kênh/video con xem có tỷ lệ bình luận tiêu cực hoặc từ khóa nguy cơ cao; (2) **Bình luận của con:** bình luận con viết có từ khóa nhạy cảm hoặc sentiment/emotion bất thường (vd đột biến negative/angry). |
-| **Đầu vào** | (1) Ngưỡng (vd % negative > 40% trong 7 ngày trên video con xem; hoặc % negative từ bình luận con > 50%); (2) Danh sách từ khóa nguy cơ (tự làm hại, bắt nạt, …) cấu hình được; (3) Dữ liệu comment (của video con xem và/hoặc của con) đã phân tích + thời gian. |
-| **Đầu ra** | Cảnh báo (in-app + optional email/push): “Nội dung con xem tuần qua có nhiều bình luận tiêu cực (X%), cao hơn trung bình”; “Phát hiện từ khóa nhạy cảm trong bình luận con: …”; “Xu hướng bình luận của con tuần qua thiên tiêu cực”. |
-| **Giá trị thực tiễn** | Hỗ trợ can thiệp sớm (trò chuyện, giới hạn nội dung, tìm hỗ trợ chuyên môn); không thay thế chuyên gia tâm lý. |
-| **Ý nghĩa nghiên cứu** | Early warning system kép: “môi trường” + “hành vi người xem”; có thể nghiên cứu độ nhạy/độ đặc hiệu và false positive. |
+
+| Thành phần             | Mô tả                                                                                                                                                                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mục tiêu**           | Cảnh báo trong hai trường hợp: (1) **Môi trường:** kênh/video con xem có tỷ lệ bình luận tiêu cực hoặc từ khóa nguy cơ cao; (2) **Bình luận của con:** bình luận con viết có từ khóa nhạy cảm hoặc sentiment/emotion bất thường (vd đột biến negative/angry).     |
+| **Đầu vào**            | (1) Ngưỡng (vd % negative > 40% trong 7 ngày trên video con xem; hoặc % negative từ bình luận con > 50%); (2) Danh sách từ khóa nguy cơ (tự làm hại, bắt nạt, …) cấu hình được; (3) Dữ liệu comment (của video con xem và/hoặc của con) đã phân tích + thời gian. |
+| **Đầu ra**             | Cảnh báo (in-app + optional email/push): “Nội dung con xem tuần qua có nhiều bình luận tiêu cực (X%), cao hơn trung bình”; “Phát hiện từ khóa nhạy cảm trong bình luận con: …”; “Xu hướng bình luận của con tuần qua thiên tiêu cực”.                             |
+| **Giá trị thực tiễn**  | Hỗ trợ can thiệp sớm (trò chuyện, giới hạn nội dung, tìm hỗ trợ chuyên môn); không thay thế chuyên gia tâm lý.                                                                                                                                                    |
+| **Ý nghĩa nghiên cứu** | Early warning system kép: “môi trường” + “hành vi người xem”; có thể nghiên cứu độ nhạy/độ đặc hiệu và false positive.                                                                                                                                            |
+
 
 ---
 
 ## 4.4. Báo cáo trực quan cho phụ huynh (con = người xem)
 
-| Thành phần | Mô tả |
-|------------|--------|
-| **Mục tiêu** | Báo cáo định kỳ (tuần/tháng) cho phụ huynh bằng ngôn ngữ đơn giản, ít thuật ngữ kỹ thuật, tập trung vào **nội dung con xem** và **cách con tương tác**. |
-| **Đầu vào** | Dữ liệu sentiment/emotion đã aggregate: (1) theo kênh/video con xem (“môi trường”); (2) theo bình luận con viết (nếu có); (3) Thời gian; template báo cáo. |
-| **Đầu ra** | PDF/trang web: “Tuần này, nội dung con xem có khoảng X% bình luận tích cực, Y% trung tính, Z% tiêu cực”; “Cảm xúc thường thấy trong cộng đồng đó: vui vẻ, góp ý, …”; “Bình luận con để lại: phần lớn tích cực/trung tính/…” (nếu có); “So với tuần trước: tăng/giảm …”; biểu đồ đơn giản (pie/bar). |
-| **Giá trị thực tiễn** | Phụ huynh không cần hiểu “sentiment”, “emotion label”; dễ chia sẻ với chuyên gia nếu cần. |
-| **Ý nghĩa nghiên cứu** | Human-centred design cho dashboard analytics trong bối cảnh “viewer”; có thể đánh giá mức độ hiểu và hài lòng của phụ huynh (survey). |
+
+| Thành phần             | Mô tả                                                                                                                                                                                                                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mục tiêu**           | Báo cáo định kỳ (tuần/tháng) cho phụ huynh bằng ngôn ngữ đơn giản, ít thuật ngữ kỹ thuật, tập trung vào **nội dung con xem** và **cách con tương tác**.                                                                                                                                             |
+| **Đầu vào**            | Dữ liệu sentiment/emotion đã aggregate: (1) theo kênh/video con xem (“môi trường”); (2) theo bình luận con viết (nếu có); (3) Thời gian; template báo cáo.                                                                                                                                          |
+| **Đầu ra**             | PDF/trang web: “Tuần này, nội dung con xem có khoảng X% bình luận tích cực, Y% trung tính, Z% tiêu cực”; “Cảm xúc thường thấy trong cộng đồng đó: vui vẻ, góp ý, …”; “Bình luận con để lại: phần lớn tích cực/trung tính/…” (nếu có); “So với tuần trước: tăng/giảm …”; biểu đồ đơn giản (pie/bar). |
+| **Giá trị thực tiễn**  | Phụ huynh không cần hiểu “sentiment”, “emotion label”; dễ chia sẻ với chuyên gia nếu cần.                                                                                                                                                                                                           |
+| **Ý nghĩa nghiên cứu** | Human-centred design cho dashboard analytics trong bối cảnh “viewer”; có thể đánh giá mức độ hiểu và hài lòng của phụ huynh (survey).                                                                                                                                                               |
+
 
 ---
 
 ## 4.5. Gợi ý hành động cho phụ huynh (phù hợp khi con là người xem)
 
-| Thành phần | Mô tả |
-|------------|--------|
-| **Mục tiêu** | Từ kết quả phân tích (môi trường con xem +/hoặc bình luận con viết), hệ thống đưa ra gợi ý hành động ngắn gọn, không chẩn đoán, **phù hợp với vai trò người xem**. |
-| **Đầu vào** | Rule/template theo từng “pattern”: ví dụ “môi trường nội dung con xem có nhiều tiêu cực” → “Nên trò chuyện với con về loại nội dung và cộng đồng con tham gia”; “Bình luận con có xu hướng tiêu cực” → “Có thể hỏi con về trải nghiệm trên mạng, có điều gì khiến con khó chịu không”; “Xuất hiện từ khóa nhạy cảm” → “Cân nhắc trao đổi và tìm hỗ trợ chuyên môn nếu cần”. |
-| **Đầu ra** | 1–3 gợi ý dạng bullet, kèm link tài liệu (vd hướng dẫn an toàn mạng, giới hạn thời gian xem, đường dây nóng). |
-| **Giá trị thực tiễn** | Giảm bối rối “biết số liệu rồi làm gì”; tăng tính ứng dụng thực tế trong bối cảnh con là người xem. |
-| **Ý nghĩa nghiên cứu** | Decision support dựa trên output AI cho use case “parent of viewer”; có thể đánh giá mức độ phù hợp và an toàn của gợi ý (expert review). |
+
+| Thành phần             | Mô tả                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mục tiêu**           | Từ kết quả phân tích (môi trường con xem +/hoặc bình luận con viết), hệ thống đưa ra gợi ý hành động ngắn gọn, không chẩn đoán, **phù hợp với vai trò người xem**.                                                                                                                                                                                                          |
+| **Đầu vào**            | Rule/template theo từng “pattern”: ví dụ “môi trường nội dung con xem có nhiều tiêu cực” → “Nên trò chuyện với con về loại nội dung và cộng đồng con tham gia”; “Bình luận con có xu hướng tiêu cực” → “Có thể hỏi con về trải nghiệm trên mạng, có điều gì khiến con khó chịu không”; “Xuất hiện từ khóa nhạy cảm” → “Cân nhắc trao đổi và tìm hỗ trợ chuyên môn nếu cần”. |
+| **Đầu ra**             | 1–3 gợi ý dạng bullet, kèm link tài liệu (vd hướng dẫn an toàn mạng, giới hạn thời gian xem, đường dây nóng).                                                                                                                                                                                                                                                               |
+| **Giá trị thực tiễn**  | Giảm bối rối “biết số liệu rồi làm gì”; tăng tính ứng dụng thực tế trong bối cảnh con là người xem.                                                                                                                                                                                                                                                                         |
+| **Ý nghĩa nghiên cứu** | Decision support dựa trên output AI cho use case “parent of viewer”; có thể đánh giá mức độ phù hợp và an toàn của gợi ý (expert review).                                                                                                                                                                                                                                   |
+
 
 ---
 
@@ -299,13 +320,12 @@ Pipeline này có thể viết thành module `VietnameseCommentPreprocessor` và
 
 ## 5.3. Gợi ý 1–2 hướng nghiên cứu có thể viết paper / báo cáo NCKH
 
-1. **“Cải thiện phân tích sentiment và emotion cho bình luận YouTube tiếng Việt bằng tiền xử lý slang và mô hình PhoBERT”**  
-   - Nội dung: Pipeline tiền xử lý (slang, emoji, negation) + fine-tune PhoBERT; so sánh với baseline (không tiền xử lý, sklearn); đánh giá trên dataset bình luận YouTube tiếng Việt (có thể tự gán nhãn hoặc dùng dataset công khai).  
-   - Đóng góp: Phương pháp tiền xử lý phù hợp domain “comment mạng”; số liệu so sánh cho tiếng Việt.
-
-2. **“Hệ thống theo dõi xu hướng cảm xúc và cảnh báo sớm cho phụ huynh dựa trên phân tích bình luận YouTube”**  
-   - Nội dung: Kiến trúc hệ thống (thu thập → phân tích → aggregate theo thời gian → cảnh báo + báo cáo); cách xác định ngưỡng và từ khóa nhạy cảm; đánh giá usability với phụ huynh (survey, interview).  
-   - Đóng góp: Ứng dụng sentiment/emotion vào wellbeing; cân bằng giữa lợi ích và quyền riêng tư/đạo đức.
+1. **“Cải thiện phân tích sentiment và emotion cho bình luận YouTube tiếng Việt bằng tiền xử lý slang và mô hình PhoBERT”**
+  - Nội dung: Pipeline tiền xử lý (slang, emoji, negation) + fine-tune PhoBERT; so sánh với baseline (không tiền xử lý, sklearn); đánh giá trên dataset bình luận YouTube tiếng Việt (có thể tự gán nhãn hoặc dùng dataset công khai).  
+  - Đóng góp: Phương pháp tiền xử lý phù hợp domain “comment mạng”; số liệu so sánh cho tiếng Việt.
+2. **“Hệ thống theo dõi xu hướng cảm xúc và cảnh báo sớm cho phụ huynh dựa trên phân tích bình luận YouTube”**
+  - Nội dung: Kiến trúc hệ thống (thu thập → phân tích → aggregate theo thời gian → cảnh báo + báo cáo); cách xác định ngưỡng và từ khóa nhạy cảm; đánh giá usability với phụ huynh (survey, interview).  
+  - Đóng góp: Ứng dụng sentiment/emotion vào wellbeing; cân bằng giữa lợi ích và quyền riêng tư/đạo đức.
 
 ---
 
@@ -313,11 +333,13 @@ Pipeline này có thể viết thành module `VietnameseCommentPreprocessor` và
 
 ## 6.1. Đánh giá tính mới – tính ứng dụng – tính khả thi
 
-| Tiêu chí | Đánh giá | Giải thích ngắn |
-|----------|----------|------------------|
-| **Tính mới** | Trung bình–Khá | Kết hợp PhoBERT + rule-based + (đề xuất) tiền xử lý slang/emoji cho comment YouTube tiếng Việt chưa phổ biến trong báo cáo trong nước; hướng “hỗ trợ phụ huynh” dựa trên sentiment time series và cảnh báo là góc nhìn có thể làm mới. |
-| **Tính ứng dụng** | Cao | Giải quyết nhu cầu creator (analytics, gợi ý nội dung) và mở rộng sang phụ huynh (theo dõi, cảnh báo, báo cáo); có thể triển khai thí điểm trong trường hoặc gia đình. |
-| **Tính khả thi** | Cao | Công nghệ đã có (Spring Boot, Flask, PhoBERT/sklearn, React); cải tiến chủ yếu là mở rộng pipeline, lưu trữ và thêm module phụ huynh; nguồn lực sinh viên/nhóm nhỏ có thể thực hiện trong 1–2 học kỳ. |
+
+| Tiêu chí          | Đánh giá       | Giải thích ngắn                                                                                                                                                                                                                        |
+| ----------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Tính mới**      | Trung bình–Khá | Kết hợp PhoBERT + rule-based + (đề xuất) tiền xử lý slang/emoji cho comment YouTube tiếng Việt chưa phổ biến trong báo cáo trong nước; hướng “hỗ trợ phụ huynh” dựa trên sentiment time series và cảnh báo là góc nhìn có thể làm mới. |
+| **Tính ứng dụng** | Cao            | Giải quyết nhu cầu creator (analytics, gợi ý nội dung) và mở rộng sang phụ huynh (theo dõi, cảnh báo, báo cáo); có thể triển khai thí điểm trong trường hoặc gia đình.                                                                 |
+| **Tính khả thi**  | Cao            | Công nghệ đã có (Spring Boot, Flask, PhoBERT/sklearn, React); cải tiến chủ yếu là mở rộng pipeline, lưu trữ và thêm module phụ huynh; nguồn lực sinh viên/nhóm nhỏ có thể thực hiện trong 1–2 học kỳ.                                  |
+
 
 ---
 
@@ -331,12 +353,175 @@ Pipeline này có thể viết thành module `VietnameseCommentPreprocessor` và
 
 ## 6.3. Nhận xét: phù hợp cấp nào / phát triển sản phẩm
 
-| Hướng | Nhận xét |
-|-------|----------|
-| **NCKH cấp khoa** | **Phù hợp.** Đủ yêu cầu: vấn đề rõ ràng (sentiment/emotion tiếng Việt, hỗ trợ phụ huynh), phương pháp (NLP + pipeline + hệ thống), đánh giá (độ chính xác, usability). Nên có dataset và so sánh baseline. |
-| **NCKH cấp trường** | **Có thể đạt** nếu: (1) Có dataset gán nhãn (hoặc dùng dataset công khai) và so sánh nhiều phương pháp; (2) Có phần thử nghiệm với người dùng (phụ huynh/giáo viên); (3) Viết báo cáo/bài báo có cấu trúc chuẩn, trích dẫn đầy đủ. |
+
+| Hướng                          | Nhận xét                                                                                                                                                                                                                                              |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **NCKH cấp khoa**              | **Phù hợp.** Đủ yêu cầu: vấn đề rõ ràng (sentiment/emotion tiếng Việt, hỗ trợ phụ huynh), phương pháp (NLP + pipeline + hệ thống), đánh giá (độ chính xác, usability). Nên có dataset và so sánh baseline.                                            |
+| **NCKH cấp trường**            | **Có thể đạt** nếu: (1) Có dataset gán nhãn (hoặc dùng dataset công khai) và so sánh nhiều phương pháp; (2) Có phần thử nghiệm với người dùng (phụ huynh/giáo viên); (3) Viết báo cáo/bài báo có cấu trúc chuẩn, trích dẫn đầy đủ.                    |
 | **Startup / sản phẩm thực tế** | **Khả thi.** Sản phẩm hiện tại đã là MVP cho creator; thêm role “phụ huynh”, tính năng theo dõi + cảnh báo + báo cáo có thể là bản freemium hoặc B2B (trường học). Cần chú ý: chính sách bảo mật, consent, không quảng bá thay thế chuyên gia tâm lý. |
+
 
 ---
 
 **Tóm tắt:** Hệ thống YouTube AI Analytics đã có nền tảng tốt (thu thập, phân tích sentiment/emotion, dashboard, batch job). Cần cải thiện hiệu năng (cache, queue, phân tầng dữ liệu), pipeline NLP (tiền xử lý slang/emoji/negation) và bổ sung module hỗ trợ phụ huynh (xu hướng, cảnh báo, báo cáo, gợi ý hành động). Đề tài phù hợp NCKH cấp khoa, có thể vươn lên cấp trường và có tiềm năng phát triển thành sản phẩm thực tế nếu bổ sung khung đạo đức và trải nghiệm người dùng.
+
+---
+
+# 7. SỰ CỐ TRONG QUÁ TRÌNH TRAIN VÀ CÁCH KHẮC PHỤC
+
+Mục này tổng hợp các sự cố thực tế khi huấn luyện PhoBERT trên Kaggle với các dataset tiếng Việt (VLSP, AIVIVN, UIT-VSMEC, ViGoEmotions), tập trung vào nguyên nhân kỹ thuật, cách xử lý và kinh nghiệm vận hành.
+
+## 7.1. Overfitting khi tăng epoch
+
+**Dấu hiệu:**
+
+- `training_loss` giảm đều theo epoch nhưng `eval_loss` tăng hoặc dao động xấu.
+- `eval_f1_macro` không còn cải thiện sau một số epoch.
+- Confusion matrix cho thấy mô hình học tốt lớp dễ nhưng sai nhiều ở lớp khó (đặc biệt `neutral`).
+
+**Nguyên nhân:**
+
+- Dữ liệu train chưa đủ đa dạng ngữ cảnh bình luận mạng xã hội.
+- Mô hình PhoBERT có năng lực biểu diễn cao nên dễ học thuộc nhiễu nếu regularization chưa đủ.
+
+**Khắc phục đã áp dụng:**
+
+- Bật `EarlyStoppingCallback(early_stopping_patience=2)`.
+- Dùng `load_best_model_at_end=True`, chọn checkpoint tốt nhất theo `metric_for_best_model="f1_macro"`.
+- Giữ `weight_decay=0.01`, giới hạn `num_train_epochs=8` để tránh train quá dài.
+
+**Khuyến nghị bổ sung:**
+
+- Giảm learning rate xuống `1e-5` khi thấy dao động validation mạnh.
+- Cân bằng lại dữ liệu theo lớp hoặc bổ sung dữ liệu cho lớp khó.
+- Thử tăng dropout khi fine-tune nếu pipeline cho phép cấu hình.
+
+---
+
+## 7.2. Early stopping dừng trước epoch tối đa
+
+**Hiện tượng:**
+
+- Job dừng tại epoch 5/8 hoặc 6/8 dù cấu hình tối đa 8 epoch.
+
+**Đánh giá kỹ thuật:**
+
+- Đây là hành vi bình thường của cơ chế early stopping, không phải lỗi.
+- Mục tiêu là dừng đúng thời điểm để giữ mô hình có khả năng tổng quát hóa tốt nhất.
+
+**Cách xác nhận:**
+
+- Kiểm tra `trainer.state.log_history`: metric validation không cải thiện trong số epoch bằng `patience`.
+- Kiểm tra mô hình xuất ra có phải checkpoint tốt nhất (best model) hay không.
+
+---
+
+## 7.3. Lỗi NameError do mất biến trong notebook
+
+**Hiện tượng:**
+
+- Lỗi kiểu `NameError: name 'encoded_test' is not defined` hoặc `tokenized_test is not defined`.
+
+**Nguyên nhân:**
+
+- Restart kernel hoặc chạy rời cell khiến biến trung gian bị mất.
+- Tên biến trong code mẫu không trùng với notebook hiện tại.
+
+**Khắc phục:**
+
+- Chạy lại notebook theo đúng thứ tự pipeline (load data -> tokenize -> train/eval -> export).
+- Ưu tiên lấy nhãn thật từ `pred_output.label_ids` thay vì phụ thuộc vào tên biến tĩnh.
+- Dùng cell export có kiểm tra biến tồn tại để tránh lỗi khi chạy lại từng phần.
+
+---
+
+## 7.4. Không tương thích phiên bản thư viện (Transformers)
+
+**Hiện tượng thường gặp:**
+
+- Lỗi tham số `evaluation_strategy`/`eval_strategy`.
+- Lỗi tham số `tokenizer` trong `Trainer(...)` tùy phiên bản.
+
+**Nguyên nhân:**
+
+- Kaggle notebook dùng version thư viện khác với code mẫu.
+
+**Khắc phục:**
+
+- Chuẩn hóa lệnh cài đặt ngay đầu notebook (`pip install -U ...`).
+- Điều chỉnh tham số theo đúng API của phiên bản đang chạy.
+- Ghi rõ phiên bản thư viện trong phụ lục để đảm bảo tái lập thí nghiệm.
+
+---
+
+## 7.5. Sai cấu trúc file dataset và lỗi đọc dữ liệu
+
+**Hiện tượng:**
+
+- Không tìm thấy file train/test theo đường dẫn cứng.
+- Dataset ở định dạng `.xlsx` trong khi code đọc `.csv`.
+
+**Nguyên nhân:**
+
+- Tên thư mục trên Kaggle khác nhau theo nguồn dataset.
+- Khác định dạng file giữa các bộ dữ liệu.
+
+**Khắc phục:**
+
+- Dò file linh hoạt trong `/kaggle/input` thay vì hard-code một đường dẫn duy nhất.
+- Với UIT-VSMEC dạng Excel, dùng `pd.read_excel(..., engine="openpyxl")`.
+- Chuẩn hóa cột về schema nội bộ (`text`, `emotion` hoặc `label`) trước khi map nhãn.
+
+---
+
+## 7.6. Mất cân bằng lớp và khó phân biệt lớp neutral
+
+**Dấu hiệu:**
+
+- Accuracy chấp nhận được nhưng `f1_macro` thấp hơn kỳ vọng.
+- Lớp `neutral` bị nhầm nhiều sang `negative` hoặc `positive`.
+
+**Nguyên nhân:**
+
+- Phân bố nhãn không đều.
+- Bản chất ngôn ngữ trung tính mơ hồ, dễ lệch cảm xúc nhẹ.
+
+**Khắc phục:**
+
+- Dùng `stratify` khi chia train/val/test.
+- Theo dõi đồng thời `accuracy`, `f1_macro`, classification report và confusion matrix.
+- Cân bằng tập train (downsample lớp lớn hoặc bổ sung mẫu lớp thiếu).
+
+---
+
+## 7.7. Lỗi export model và tích hợp local
+
+**Hiện tượng:**
+
+- Đã tải model nhưng project không load được.
+
+**Nguyên nhân:**
+
+- Giải nén sai cấp thư mục (file nằm trong thư mục con `best_model` thay vì thư mục model đích).
+- Thiếu file tokenizer/config đi kèm trọng số.
+
+**Khắc phục:**
+
+- Đảm bảo các file cốt lõi nằm trực tiếp tại thư mục model local:
+  - `config.json`
+  - `model.safetensors`
+  - `tokenizer_config.json`
+  - `vocab.txt`
+  - `bpe.codes`
+  - `special_tokens_map.json`
+- Chạy script kiểm tra model sau khi copy để xác nhận tích hợp thành công.
+
+---
+
+## 7.8. Bài học kinh nghiệm vận hành thực nghiệm
+
+- Luôn lưu artifacts sau mỗi lần train: `training_logs.csv`, `classification_report.txt`, `confusion_matrix.png`, `meta.json`.
+- Chuẩn hóa môi trường trước khi chạy (phiên bản `transformers`, `datasets`, `scikit-learn`).
+- Tách notebook cho từng bài toán (sentiment và emotion) để tránh xung đột biến.
+- Ưu tiên đánh giá bằng `f1_macro` cho dữ liệu mất cân bằng thay vì chỉ nhìn accuracy.
+

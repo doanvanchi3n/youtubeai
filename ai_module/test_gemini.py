@@ -15,12 +15,12 @@ load_dotenv()
 try:
     import google.generativeai as genai
     
-    api_key = os.getenv('GOOGLE_GEMINI_API_KEY')
+    api_key = (os.getenv('GOOGLE_GEMINI_API_KEY') or '').strip()
     if not api_key:
         print("ERROR: GOOGLE_GEMINI_API_KEY khong duoc tim thay trong .env file!")
         print("\nHuong dan:")
         print("1. Mo file ai_module/.env")
-        print("2. Them dong: GOOGLE_GEMINI_API_KEY=AIzaSyCW3km8BxBfEKFsI-7wcT2l3Mi06w5a544")
+        print("2. Them dong: GOOGLE_GEMINI_API_KEY=<key_cua_ban> (khong co space sau dau =)")
         print("3. Chay lai script nay")
         exit(1)
     

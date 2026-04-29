@@ -23,8 +23,8 @@ class ChatService:
     def __init__(self):
         self.content_service = ContentService()
         
-        # Initialize Google Gemini
-        self.gemini_api_key = os.getenv('GOOGLE_GEMINI_API_KEY')
+        # Initialize Google Gemini (strip() để tránh lỗi khi .env có space sau dấu =)
+        self.gemini_api_key = (os.getenv('GOOGLE_GEMINI_API_KEY') or '').strip()
         self.gemini_model = None
         if HAS_GEMINI and self.gemini_api_key:
             try:
@@ -121,41 +121,44 @@ Luôn trả lời bằng tiếng Việt, tập trung vào YOUTUBE CONTENT, khôn
             # 4. Call AI Chat API (Google Gemini preferred, fallback to HuggingFace)
             # Gemini có conversation quality tốt hơn, HuggingFace là fallback
             logger.info(f"💬 Generating chat reply for {len(conversation)} messages")
+            if not HAS_GEMINI or not self.gemini_api_key:
+                logger.info("⚠ GOOGLE_GEMINI_API_KEY chưa cấu hình trong .env → dùng fallback (tool). Để Chat Bot trò chuyện tự nhiên, thêm API key từ Google AI Studio vào ai_module/.env")
             reply = self._call_gemini_chat(conversation)
             
             # Fallback to HuggingFace if Gemini fails (API error, quota exhausted, etc.)
             if not reply:
-                logger.info("⚠ Gemini not available, trying HuggingFace...")
+                logger.info("⚠ Gemini không trả lời (lỗi API hoặc chưa cấu hình), thử HuggingFace...")
                 reply = self.content_service._call_huggingface_chat(conversation, max_length=512)
             
             # 5. If no reply from AI, provide helpful fallback
             if not reply:
-                logger.warning("⚠ No reply from HuggingFace API, using smart fallback")
+                logger.warning("⚠ Không có phản hồi từ AI conversation (Gemini/HuggingFace). Dùng fallback theo từ khóa.")
                 # Provide helpful fallback based on user's message
                 last_user_msg = next((msg for msg in reversed(messages) if msg.get("role") == "user"), None)
                 if last_user_msg:
                     user_content = last_user_msg.get("content", "").lower()
                     
                     # Smart detection và tự động gọi tool
+                    tip = "\n\n💡 Để Chat Bot trò chuyện tự nhiên hơn, thêm GOOGLE_GEMINI_API_KEY vào ai_module/.env (lấy từ Google AI Studio)."
                     if any(word in user_content for word in ["tiêu đề", "title", "tạo tiêu đề", "gợi ý tiêu đề", "đề xuất tiêu đề"]):
                         tool_result = self._handle_tool_call("tạo tiêu đề", context)
                         if tool_result:
                             return {
-                                "reply": f"Tuy tôi không thể kết nối với AI conversation model lúc này, nhưng tôi vẫn có thể giúp bạn tạo tiêu đề:\n\n{tool_result}\n\n💡 Bạn có muốn tôi tạo thêm mô tả hoặc hashtags không? Chỉ cần yêu cầu: 'Tạo mô tả' hoặc 'Tạo hashtags'"
+                                "reply": f"Đây là gợi ý tiêu đề cho bạn:\n\n{tool_result}\n\n💡 Bạn có muốn tôi tạo thêm mô tả hoặc hashtags không? Chỉ cần yêu cầu: 'Tạo mô tả' hoặc 'Tạo hashtags'.{tip}"
                             }
                     
                     elif any(word in user_content for word in ["mô tả", "description", "viết mô tả", "tạo mô tả", "mô tả seo"]):
                         tool_result = self._handle_tool_call("tạo mô tả", context)
                         if tool_result:
                             return {
-                                "reply": f"Tuy tôi không thể kết nối với AI conversation model lúc này, nhưng tôi vẫn có thể giúp bạn tạo mô tả:\n\n{tool_result}\n\n💡 Bạn có muốn tôi tạo thêm tiêu đề hoặc hashtags không? Chỉ cần yêu cầu: 'Tạo tiêu đề' hoặc 'Tạo hashtags'"
+                                "reply": f"Đây là gợi ý mô tả cho bạn:\n\n{tool_result}\n\n💡 Bạn có muốn tôi tạo thêm tiêu đề hoặc hashtags không? Chỉ cần yêu cầu: 'Tạo tiêu đề' hoặc 'Tạo hashtags'.{tip}"
                             }
                     
                     elif any(word in user_content for word in ["hashtag", "tag", "tạo hashtag", "gợi ý hashtag"]):
                         tool_result = self._handle_tool_call("tạo hashtags", context)
                         if tool_result:
                             return {
-                                "reply": f"Tuy tôi không thể kết nối với AI conversation model lúc này, nhưng tôi vẫn có thể giúp bạn tạo hashtags:\n\n{tool_result}\n\n💡 Bạn có muốn tôi tạo thêm tiêu đề hoặc mô tả không? Chỉ cần yêu cầu: 'Tạo tiêu đề' hoặc 'Tạo mô tả'"
+                                "reply": f"Đây là gợi ý hashtags cho bạn:\n\n{tool_result}\n\n💡 Bạn có muốn tôi tạo thêm tiêu đề hoặc mô tả không? Chỉ cần yêu cầu: 'Tạo tiêu đề' hoặc 'Tạo mô tả'.{tip}"
                             }
                     
                     elif any(word in user_content for word in ["xu hướng", "trend", "hot", "đang hot", "phổ biến"]):
@@ -165,9 +168,9 @@ Luôn trả lời bằng tiếng Việt, tập trung vào YOUTUBE CONTENT, khôn
                                 "reply": f"Đây là các xu hướng tôi tìm thấy:\n\n{tool_result}\n\n💡 Bạn có muốn tôi tạo tiêu đề, mô tả hoặc hashtags dựa trên xu hướng này không?"
                             }
                 
-                # Generic helpful message
+                # Generic helpful message (khi không có AI conversation và không match tool)
                 return {
-                    "reply": "Xin chào! Tôi là trợ lý AI chuyên về nội dung YouTube. Tôi có thể giúp bạn:\n\n✅ Tạo tiêu đề video\n✅ Tạo mô tả SEO\n✅ Tạo hashtags\n✅ Phân tích xu hướng\n✅ Tư vấn chiến lược nội dung\n\n💡 Cách sử dụng:\n• Nhập từ khóa hoặc mô tả video của bạn ở ô input phía trên\n• Yêu cầu: 'Tạo tiêu đề', 'Tạo mô tả', hoặc 'Tạo hashtags'\n• Hoặc dùng tab 'Tạo Gợi ý Nội Dung' để có đầy đủ tính năng\n\nHãy thử hỏi tôi bất cứ điều gì về YouTube content!"
+                    "reply": "Xin chào! Tôi là trợ lý AI chuyên về nội dung YouTube. Tôi có thể giúp bạn:\n\n✅ Tạo tiêu đề video\n✅ Tạo mô tả SEO\n✅ Tạo hashtags\n✅ Phân tích xu hướng\n\n💡 Cách sử dụng:\n• Nhập từ khóa hoặc mô tả video ở ô phía trên, rồi gửi: 'Tạo tiêu đề', 'Tạo mô tả', hoặc 'Tạo hashtags'\n• Hoặc dùng tab 'Tạo Gợi ý Nội Dung' để có đầy đủ tính năng\n\n🔧 Để Chat Bot trò chuyện tự nhiên (hỏi đáp mở), thêm GOOGLE_GEMINI_API_KEY vào file ai_module/.env (lấy key từ aistudio.google.com)."
                 }
             
             # 6. Check if reply contains tool call request (simple pattern matching)
