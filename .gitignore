@@ -2,10 +2,14 @@
 venv/
 env/
 ENV/
-# Env files (không commit secret)
+# Env files (không commit secret — dùng .env.example làm mẫu)
 .env
-*.env
+.env.*
+!.env.example
 ai_module/.env
+backend/.env
+frontend/.env
+frontend/.env.local
 # Python
 __pycache__/
 *.py[cod]
@@ -40,7 +44,29 @@ Thumbs.db
 
 # Logs
 *.log
-# Ignore PhoBERT models (rất nặng, không push lên GitHub)
+# PhoBERT / model weights (rất nặng — tải riêng sau khi clone)
+ai_module/app/models/phobert_emotion/
+ai_module/app/models/phobert_sentiment/
+ai_module/app/models/phobert_models_for_youtubeai/
+ai_module/app/models/training_report_youtubeai/
 ai_module/app/data/models/phobert_emotion/
 ai_module/app/data/models/phobert_sentiment/
+*.pt
+*.pth
 *.safetensors
+*.bin
+!**/config.json
+!**/tokenizer_config.json
+!**/training_meta.json
+
+# Dataset & artifacts (lớn — dùng Kaggle / zip riêng)
+ai_module/data/raw/
+ai_module/data/processed/**/*.csv
+ai_module/data/processed/**/*.zip
+ai_module/data/processed/**/*.xlsx
+ai_module/data/processed/**/*.txt
+
+# Kaggle / train checkpoints
+**/checkpoints_sentiment/
+**/checkpoints_emotion/
+/kaggle/working/

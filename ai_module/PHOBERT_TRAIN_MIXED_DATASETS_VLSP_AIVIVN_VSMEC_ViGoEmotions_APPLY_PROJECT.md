@@ -1,7 +1,7 @@
 # Fine-tune PhoBERT trên nhiều dataset (Sentiment + Emotion) và đưa vào project
 
 File này hướng dẫn bạn train:
-- Sentiment: **VLSP2016 (3 lớp)** + **AIVIVN2019 (2 lớp)**
+- Sentiment: **VLSP2016 (3 lớp)** + **AIVIVN2019 (2 lớp)** + **Synthetic Vietnamese Students' Feedback** (tùy chọn, mặc định bật khi preprocess)
 - Emotion: **VSMEC** + **ViGoEmotions (fine-grained + neutral)**
 
 Rồi export model để project bạn load bằng:
@@ -40,10 +40,11 @@ Không có `neutral` => trung lập vẫn đến từ VLSP2016 (3 lớp).
 
 1. Load image.png (3 lớp) từ HuggingFace.
 2. Load AIVIVN2019 (csv từ Kaggle).
-3. Ghép lại thành 1 dataset chung với cột:
+3. Load Synthetic Feedback (chỉ câu tiếng Việt).
+4. Ghép lại thành 1 dataset chung với cột:
    - `text`
    - `label` (string trong tập `negative/neutral/positive`).
-4. Fine-tune `vinai/phobert-base` với `num_labels=3`.
+5. Fine-tune `vinai/phobert-base` với `num_labels=3`.
 
 ### 2.3 Notebook cell mẫu (sentiment 3 lớp)
 
@@ -87,11 +88,11 @@ TEXT_COL_AIV = "text"   # ví dụ
 LABEL_COL_AIV = "label" # ví dụ
 
 def map_aivivn_label(x):
-    # AIVIVN: 0=positive, 1=negative (theo nguồn mô tả public)
+    # AIVIVN (file Kaggle bạn tải): 0=negative, 1=positive
     if x == 0:
-        return "positive"
-    else:
         return "negative"
+    else:
+        return "positive"
 
 df_aivivn["label"] = df_aivivn[LABEL_COL_AIV].apply(map_aivivn_label)
 df_aivivn = df_aivivn[[TEXT_COL_AIV, "label"]].rename(columns={TEXT_COL_AIV: "text"})

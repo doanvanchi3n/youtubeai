@@ -1,0 +1,35 @@
+{
+  "sentiment": {
+    "skipped_noisy": 59,
+    "skipped_empty": 1,
+    "skipped_non_vietnamese": 400,
+    "synthetic_rows_added": 1951,
+    "raw_merged": 31957,
+    "after_load": 31957,
+    "removed_exact_dup": 556,
+    "removed_near_dup": 197,
+    "removed_train_leak_val": 80,
+    "removed_train_leak_test": 172,
+    "train_before_balance": 23790,
+    "train_balanced": 32604,
+    "final_unbalanced_total": 30952
+  },
+  "emotion": {
+    "skipped_noisy": 228,
+    "raw_merged": 27363,
+    "after_load": 27363,
+    "removed_exact_dup": 4830,
+    "removed_near_dup": 14,
+    "removed_train_leak_val": 1129,
+    "removed_train_leak_test": 1114,
+    "train_before_balance": 14966,
+    "train_balanced": 28150,
+    "final_unbalanced_total": 20276
+  },
+  "settings": {
+    "min_text_len": 5,
+    "max_text_len": 256,
+    "near_dup_ratio": 0.92,
+    "seed": 42
+  }
+}

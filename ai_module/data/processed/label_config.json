@@ -1,0 +1,85 @@
+{
+  "sentiment_labels": [
+    "negative",
+    "neutral",
+    "positive"
+  ],
+  "emotion_labels": [
+    "sad",
+    "angry",
+    "suggestion",
+    "happy",
+    "love"
+  ],
+  "sentiment_label2id": {
+    "negative": 0,
+    "neutral": 1,
+    "positive": 2
+  },
+  "emotion_label2id": {
+    "sad": 0,
+    "angry": 1,
+    "suggestion": 2,
+    "happy": 3,
+    "love": 4
+  },
+  "train_file_recommendation": "train_balanced.csv",
+  "preprocessing": {
+    "min_text_len": 5,
+    "max_text_len": 256,
+    "near_dup_ratio": 0.92,
+    "balance_method": "oversample_to_majority_class"
+  },
+  "sentiment_counts": {
+    "train_balanced": {
+      "negative": 10868,
+      "positive": 10868,
+      "neutral": 10868
+    },
+    "sentiment_train": {
+      "positive": 10868,
+      "negative": 9161,
+      "neutral": 3761
+    },
+    "sentiment_val": {
+      "negative": 1040,
+      "positive": 997,
+      "neutral": 925
+    },
+    "sentiment_test": {
+      "positive": 2156,
+      "negative": 1694,
+      "neutral": 350
+    }
+  },
+  "emotion_counts": {
+    "train_balanced": {
+      "angry": 5630,
+      "suggestion": 5630,
+      "sad": 5630,
+      "happy": 5630,
+      "love": 5630
+    },
+    "emotion_train": {
+      "happy": 5630,
+      "sad": 3991,
+      "angry": 3526,
+      "suggestion": 1216,
+      "love": 603
+    },
+    "emotion_val": {
+      "happy": 918,
+      "angry": 700,
+      "sad": 696,
+      "suggestion": 214,
+      "love": 122
+    },
+    "emotion_test": {
+      "happy": 972,
+      "angry": 681,
+      "sad": 667,
+      "suggestion": 206,
+      "love": 134
+    }
+  }
+}
